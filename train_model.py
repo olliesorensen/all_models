@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Den
 parser.add_argument('--mode', default='none', type=str)
 parser.add_argument('--port', default='none', type=str)
 
-parser.add_argument('--network', default='split', type=str, help='split, mtan')
+parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan')
 parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
 parser.add_argument('--grad_method', default='none', type=str, help='graddrop, pcgrad, cagrad')
 parser.add_argument('--gpu', default=0, type=int, help='gpu ID')
@@ -32,7 +32,8 @@ torch.manual_seed(opt.seed)
 np.random.seed(opt.seed)
 random.seed(opt.seed)
 
-model_name = "auto_lambda"
+model_name = opt.network
+dataset_name = opt.dataset
 
 # create logging folder to store training weights and losses
 if not os.path.exists('logging'):
@@ -56,19 +57,28 @@ print('Applying Multi-task Methods: Weighting-based: {} + Gradient-based: {}'
 
 # define new or load excisting model and optimizer 
 if opt.load_model == True:
-    print("hello")
-    checkpoint = torch.load("model_auto_lambda_checkpoint.pth")
-    if opt.network == 'split':
+    checkpoint = torch.load(f"model_checkpoint_{model_name}_{dataset_name}.pth")
+    if opt.network == 'ResNet_split':
         model = MTLDeepLabv3(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == 'mtan':
+    elif opt.network == 'ResNet_mtan':
         model = MTANDeepLabv3(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])  
+        model.load_state_dict(checkpoint["model_state_dict"])
+    elif opt.network == "SegNet_split":
+        model = SegNetSplit().to(device)
+        model.load_state_dict(checkpoint["model_state_dict"])
+    elif opt.network == "SegNet_mtan":
+        model = SegNet().to(device)
+        model.load_state_dict(checkpoint["model_state_dict"])
 else:
-    if opt.network == 'split':
+    if opt.network == 'ResNet_split':
         model = MTLDeepLabv3(train_tasks).to(device)
-    elif opt.network == 'mtan':
-        model = MTANDeepLabv3(train_tasks).to(device)             
+    elif opt.network == 'ResNet_mtan':
+        model = MTANDeepLabv3(train_tasks).to(device)
+    elif opt.network == "SegNet_split":
+        model = SegNetSplit().to(device)
+    elif opt.network == "SegNet_mtan":
+        model = SegNet().to(device)          
 
 total_epoch = 100
 
@@ -208,33 +218,33 @@ for index in range(total_epoch):
             loss.backward()
             optimizer.step()
 
-        # gradient-based methods applied here:
-        elif opt.grad_method == "graddrop":
-            for i in range(len(train_tasks)):
-                train_loss_tmp[i].backward(retain_graph=True)
-                grad2vec(model, grads, grad_dims, i)
-                model.zero_grad_shared_modules()
-            g = graddrop(grads)
-            overwrite_grad(model, g, grad_dims, len(train_tasks))
-            optimizer.step()
+        # # gradient-based methods applied here:
+        # elif opt.grad_method == "graddrop":
+        #     for i in range(len(train_tasks)):
+        #         train_loss_tmp[i].backward(retain_graph=True)
+        #         grad2vec(model, grads, grad_dims, i)
+        #         model.zero_grad_shared_modules()
+        #     g = graddrop(grads)
+        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
+        #     optimizer.step()
 
-        elif opt.grad_method == "pcgrad":
-            for i in range(len(train_tasks)):
-                train_loss_tmp[i].backward(retain_graph=True)
-                grad2vec(model, grads, grad_dims, i)
-                model.zero_grad_shared_modules()
-            g = pcgrad(grads, rng, len(train_tasks))
-            overwrite_grad(model, g, grad_dims, len(train_tasks))
-            optimizer.step()
+        # elif opt.grad_method == "pcgrad":
+        #     for i in range(len(train_tasks)):
+        #         train_loss_tmp[i].backward(retain_graph=True)
+        #         grad2vec(model, grads, grad_dims, i)
+        #         model.zero_grad_shared_modules()
+        #     g = pcgrad(grads, rng, len(train_tasks))
+        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
+        #     optimizer.step()
 
-        elif opt.grad_method == "cagrad":
-            for i in range(len(train_tasks)):
-                train_loss_tmp[i].backward(retain_graph=True)
-                grad2vec(model, grads, grad_dims, i)
-                model.zero_grad_shared_modules()
-            g = cagrad(grads, len(train_tasks), 0.4, rescale=1)
-            overwrite_grad(model, g, grad_dims, len(train_tasks))
-            optimizer.step()
+        # elif opt.grad_method == "cagrad":
+        #     for i in range(len(train_tasks)):
+        #         train_loss_tmp[i].backward(retain_graph=True)
+        #         grad2vec(model, grads, grad_dims, i)
+        #         model.zero_grad_shared_modules()
+        #     g = cagrad(grads, len(train_tasks), 0.4, rescale=1)
+        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
+        #     optimizer.step()
 
         train_metric.update_metric(train_pred, train_target, train_loss)
 
@@ -292,14 +302,14 @@ print("Saving model ...")
 
 # save full model if loaded from checkpoint
 if opt.load_model == True:
-    path = f"model_{model_name}_cityscapes.pth"
+    path = f"model_{model_name}_{dataset_name}.pth"
     device = torch.device("cuda")
     model.to(device)
     torch.save(model.state_dict(), path)
 
 # save checkpoint if not already loaded from checkpoint
 else:
-    path = f"model_{model_name}_checkpoint.pth"
+    path = f"model_checkpoint_{model_name}_{dataset_name}.pth"
     device = torch.device("cuda")
     model.to(device)
     torch.save({
