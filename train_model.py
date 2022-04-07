@@ -65,10 +65,10 @@ if opt.load_model == True:
         model = MTANDeepLabv3(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
     elif opt.network == "SegNet_split":
-        model = SegNetSplit().to(device)
+        model = SegNetSplit(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
     elif opt.network == "SegNet_mtan":
-        model = SegNet().to(device)
+        model = SegNet(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
 else:
     if opt.network == 'ResNet_split':
@@ -76,9 +76,9 @@ else:
     elif opt.network == 'ResNet_mtan':
         model = MTANDeepLabv3(train_tasks).to(device)
     elif opt.network == "SegNet_split":
-        model = SegNetSplit().to(device)
+        model = SegNetSplit(train_tasks).to(device)
     elif opt.network == "SegNet_mtan":
-        model = SegNet().to(device)          
+        model = SegNet(train_tasks).to(device)          
 
 total_epoch = 100
 
@@ -100,12 +100,23 @@ if opt.weight == 'autol':
     meta_optimizer = optim.Adam([autol.meta_weights], lr=opt.autol_lr)
 
 if opt.load_model == True:
-    optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
-    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    if "ResNet" in opt.network:
+        optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    elif "SegNet" in opt.network:
+        optimizer = optim.Adam(SegNet_MTAN.parameters(), lr=1e-4)
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 else:
-    optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
-scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
+    if "ResNet" in opt.network:
+        optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
+    elif "SegNet" in opt.network:
+        optimizer = optim.Adam(SegNet_MTAN.parameters(), lr=1e-4)
 
+if "ResNet" in opt.network:
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
+elif "SegNet" in opt.network:
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+    
 # define dataset
 if opt.dataset == 'nyuv2':
     dataset_path = 'dataset/nyuv2'
@@ -154,6 +165,7 @@ if opt.grad_method != 'none':
 # Train and evaluate multi-task network
 train_batch = len(train_loader)
 test_batch = len(test_loader)
+
 train_metric = TaskMetric(train_tasks, pri_tasks, batch_size, total_epoch, opt.dataset)
 test_metric = TaskMetric(train_tasks, pri_tasks, batch_size, total_epoch, opt.dataset, include_mtl=True)
 

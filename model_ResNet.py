@@ -266,7 +266,6 @@ class MTLDeepLabv3(nn.Module):
 
     def forward(self, x):
         _, _, im_h, im_w = x.shape
-
         # Shared convolution
         x = self.shared_conv(x)
         x = self.shared_layer1(x)

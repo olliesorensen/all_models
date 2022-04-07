@@ -10,11 +10,12 @@ import torch.utils.data.sampler as sampler
 # Define SegNet MTAN
 # --------------------------------------------------------------------------------
 class SegNet(nn.Module):
-    def __init__(self):
+    def __init__(self, tasks):
         super(SegNet, self).__init__()
         # initialise network parameters
         filter = [64, 128, 256, 512, 512]
-        self.class_nb = 13
+        #self.class_nb = 13
+        self.tasks = tasks
 
         # define encoder decoder layers
         self.encoder_block = nn.ModuleList([self.conv_layer([3, filter[0]])])
@@ -57,10 +58,18 @@ class SegNet(nn.Module):
             else:
                 self.encoder_block_att.append(self.conv_layer([filter[i + 1], filter[i + 1]]))
                 self.decoder_block_att.append(self.conv_layer([filter[i + 1], filter[i + 1]]))
-
-        self.pred_task1 = self.conv_layer([filter[0], self.class_nb], pred=True)
-        self.pred_task2 = self.conv_layer([filter[0], 1], pred=True)
-        self.pred_task3 = self.conv_layer([filter[0], 3], pred=True)
+        
+        # # define task specific layers
+        if all (k in tasks for k in ('seg', 'depth', 'normal')):           
+            self.pred_task1 = self.conv_layer([filter[0], 13], pred=True)
+            self.pred_task2 = self.conv_layer([filter[0], 1], pred=True)
+            self.pred_task3 = self.conv_layer([filter[0], 3], pred=True)            
+        else:
+            self.pred_task1 = self.conv_layer([filter[0], 19], pred=True)
+            self.pred_task2 = self.conv_layer([filter[0], 10], pred=True)
+            self.pred_task3 = self.conv_layer([filter[0], 1], pred=True) 
+            
+        self.decoders = nn.ModuleList([self.pred_task1, self.pred_task2, self.pred_task3])
 
         # define pooling and unpooling functions
         self.down_sampling = nn.MaxPool2d(kernel_size=2, stride=2, return_indices=True)
@@ -105,6 +114,7 @@ class SegNet(nn.Module):
         return att_block
 
     def forward(self, x):
+        _, _, im_h, im_w = x.shape
         g_encoder, g_decoder, g_maxpool, g_upsampl, indices = ([0] * 5 for _ in range(5))
         for i in range(5):
             g_encoder[i], g_decoder[-i - 1] = ([0] * 2 for _ in range(2))
@@ -137,6 +147,8 @@ class SegNet(nn.Module):
                 g_upsampl[i] = self.up_sampling(g_decoder[i - 1][-1], indices[-i - 1])
                 g_decoder[i][0] = self.decoder_block[-i - 1](g_upsampl[i])
                 g_decoder[i][1] = self.conv_block_dec[-i - 1](g_decoder[i][0])
+        
+        x = g_decoder[i][1]
 
         # define task dependent attention module
         for i in range(3):
@@ -165,24 +177,32 @@ class SegNet(nn.Module):
                     atten_decoder[i][j][2] = (atten_decoder[i][j][1]) * g_decoder[j][-1]
 
         # define task prediction layers
-        t1_pred = F.log_softmax(self.pred_task1(atten_decoder[0][-1][-1]), dim=1)
-        t2_pred = self.pred_task2(atten_decoder[1][-1][-1])
-        t3_pred = self.pred_task3(atten_decoder[2][-1][-1])
-        t3_pred = t3_pred / torch.norm(t3_pred, p=2, dim=1, keepdim=True)
-
-        return [t1_pred, t2_pred, t3_pred], self.logsigma
+        #t1_pred = F.log_softmax(self.pred_task1(atten_decoder[0][-1][-1]), dim=1)
+        #t2_pred = self.pred_task2(atten_decoder[1][-1][-1])
+        #t3_pred = self.pred_task3(atten_decoder[2][-1][-1])
+        #t3_pred = t3_pred / torch.norm(t3_pred, p=2, dim=1, keepdim=True)
+        
+        # Task specific decoders
+        out = [0 for _ in self.tasks]
+        for i, t in enumerate(self.tasks):
+            out[i] = F.interpolate(self.decoders[i](x), size=[im_h, im_w], mode='bilinear', align_corners=True)
+            if t == 'normal':
+                out[i] = out[i] / torch.norm(out[i], p=2, dim=1, keepdim=True)
+        return out
 
 
 # --------------------------------------------------------------------------------
 # Define SegNet Split
 # --------------------------------------------------------------------------------
 class SegNetSplit(nn.Module):
-    def __init__(self):
+    def __init__(self, tasks):
         super(SegNetSplit, self).__init__()
         # initialise network parameters
         filter = [64, 128, 256, 512, 1024]
 
-        self.class_nb = 13
+        #self.class_nb = 13
+
+        self.tasks = tasks
 
         # define encoder decoder layers
         self.encoder_block = nn.ModuleList([self.conv_layer([3, filter[0]])])
@@ -204,13 +224,27 @@ class SegNetSplit(nn.Module):
                 self.conv_block_dec.append(nn.Sequential(self.conv_layer([filter[i], filter[i]]),
                                                          self.conv_layer([filter[i], filter[i]])))
 
-        # define task specific layers
-        self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                        nn.Conv2d(in_channels=filter[0], out_channels=self.class_nb, kernel_size=1, padding=0))
-        self.pred_task2 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                        nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
-        self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                        nn.Conv2d(in_channels=filter[0], out_channels=3, kernel_size=1, padding=0))
+        # # define task specific layers
+        if all (k in tasks for k in ('seg', 'depth', 'normal')):
+        
+            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=filter[0], out_channels=13, kernel_size=1, padding=0))
+            self.pred_task2 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
+            self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=filter[0], out_channels=3, kernel_size=1, padding=0))
+        else:
+            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=filter[0], out_channels=19, kernel_size=1, padding=0))
+            self.pred_task2 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=filter[0], out_channels=10, kernel_size=1, padding=0))
+            self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
+        
+        self.decoders = nn.ModuleList([self.pred_task1, self.pred_task2, self.pred_task3])
+        
+        # Define task-specific decoders using ASPP modules
+        #self.decoders = nn.ModuleList([DeepLabHead(filter[-1], self.tasks[t]) for t in self.tasks])  
 
         # define pooling and unpooling functions
         self.down_sampling = nn.MaxPool2d(kernel_size=2, stride=2, return_indices=True)
@@ -240,6 +274,7 @@ class SegNetSplit(nn.Module):
         return conv_block
 
     def forward(self, x):
+        _, _, im_h, im_w = x.shape
         g_encoder, g_decoder, g_maxpool, g_upsampl, indices = ([0] * 5 for _ in range(5))
         for i in range(5):
             g_encoder[i], g_decoder[-i - 1] = ([0] * 2 for _ in range(2))
@@ -265,10 +300,21 @@ class SegNetSplit(nn.Module):
                 g_decoder[i][0] = self.decoder_block[-i - 1](g_upsampl[i])
                 g_decoder[i][1] = self.conv_block_dec[-i - 1](g_decoder[i][0])
 
-        # define task prediction layers
-        t1_pred = F.log_softmax(self.pred_task1(g_decoder[i][1]), dim=1)
-        t2_pred = self.pred_task2(g_decoder[i][1])
-        t3_pred = self.pred_task3(g_decoder[i][1])
-        t3_pred = t3_pred / torch.norm(t3_pred, p=2, dim=1, keepdim=True)
+        x = g_decoder[i][1]
+        
+        # # define task prediction layers
+        # t1_pred = F.log_softmax(self.pred_task1(g_decoder[i][1]), dim=1)
+        # t2_pred = self.pred_task2(g_decoder[i][1])
+        # t3_pred = self.pred_task3(g_decoder[i][1])
+        # t3_pred = t3_pred / torch.norm(t3_pred, p=2, dim=1, keepdim=True)
+        
+        # Task specific decoders
+        out = [0 for _ in self.tasks]
+        for i, t in enumerate(self.tasks):
+            out[i] = F.interpolate(self.decoders[i](x), size=[im_h, im_w], mode='bilinear', align_corners=True)
+            if t == 'normal':
+                out[i] = out[i] / torch.norm(out[i], p=2, dim=1, keepdim=True)
+        return out
 
-        return [t1_pred, t2_pred, t3_pred], self.logsigma
+
+
