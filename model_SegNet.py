@@ -198,7 +198,7 @@ class SegNetSplit(nn.Module):
     def __init__(self, tasks):
         super(SegNetSplit, self).__init__()
         # initialise network parameters
-        filter = [64, 128, 256, 512, 1024]
+        filter = [64, 128, 256, 512, 512]
 
         #self.class_nb = 13
 

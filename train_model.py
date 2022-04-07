@@ -104,13 +104,13 @@ if opt.load_model == True:
         optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     elif "SegNet" in opt.network:
-        optimizer = optim.Adam(SegNet_MTAN.parameters(), lr=1e-4)
+        optimizer = optim.Adam(params, lr=1e-4)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 else:
     if "ResNet" in opt.network:
         optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
     elif "SegNet" in opt.network:
-        optimizer = optim.Adam(SegNet_MTAN.parameters(), lr=1e-4)
+        optimizer = optim.Adam(params, lr=1e-4)
 
 if "ResNet" in opt.network:
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
