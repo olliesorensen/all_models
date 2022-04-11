@@ -78,7 +78,7 @@ else:
     elif opt.network == "SegNet_split":
         model = SegNetSplit(train_tasks).to(device)
     elif opt.network == "SegNet_mtan":
-        model = SegNet(train_tasks).to(device)          
+        model = SegNetMTAN(train_tasks).to(device)          
 
 total_epoch = 100
 

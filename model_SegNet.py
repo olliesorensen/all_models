@@ -9,9 +9,9 @@ import torch.utils.data.sampler as sampler
 # --------------------------------------------------------------------------------
 # Define SegNet MTAN
 # --------------------------------------------------------------------------------
-class SegNet(nn.Module):
+class SegNetMTAN(nn.Module):
     def __init__(self, tasks):
-        super(SegNet, self).__init__()
+        super(SegNetMTAN, self).__init__()
         # initialise network parameters
         filter = [64, 128, 256, 512, 512]
         #self.class_nb = 13
