@@ -99,24 +99,26 @@ if opt.weight == 'autol':
     meta_weight_ls = np.zeros([total_epoch, len(train_tasks)], dtype=np.float32)
     meta_optimizer = optim.Adam([autol.meta_weights], lr=opt.autol_lr)
 
+# define or load optimizer and scheduler
 if opt.load_model == True:
     if "ResNet" in opt.network:
         optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
     elif "SegNet" in opt.network:
         optimizer = optim.Adam(params, lr=1e-4)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 else:
     if "ResNet" in opt.network:
         optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
     elif "SegNet" in opt.network:
         optimizer = optim.Adam(params, lr=1e-4)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
 
-if "ResNet" in opt.network:
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
-elif "SegNet" in opt.network:
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
-    
 # define dataset
 if opt.dataset == 'nyuv2':
     dataset_path = 'dataset/nyuv2'
@@ -328,6 +330,7 @@ else:
         'epoch': index,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict(),
         'loss': loss,
         }, path)
 
