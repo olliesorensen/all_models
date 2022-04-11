@@ -68,7 +68,7 @@ if opt.load_model == True:
         model = SegNetSplit(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
     elif opt.network == "SegNet_mtan":
-        model = SegNet(train_tasks).to(device)
+        model = SegNetMTAN(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
 else:
     if opt.network == 'ResNet_split':
