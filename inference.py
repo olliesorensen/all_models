@@ -13,13 +13,13 @@ from model_SegNet import SegNetMTAN, SegNetSplit
 from create_dataset import *
 from utils import *
 
-
+parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Dense Prediction Tasks')
 parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan')
 parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes')
 opt = parser.parse_args()
 
 model_name = opt.network
-data_set = dataset.network
+data_set = opt.dataset
 
 batch_size = 1
 
