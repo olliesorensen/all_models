@@ -80,7 +80,7 @@ else:
     elif opt.network == "SegNet_mtan":
         model = SegNetMTAN(train_tasks).to(device)          
 
-total_epoch = 100
+total_epoch = 200
 
 # choose task weighting here
 if opt.weight == 'uncert':
@@ -171,11 +171,14 @@ test_batch = len(test_loader)
 train_metric = TaskMetric(train_tasks, pri_tasks, batch_size, total_epoch, opt.dataset)
 test_metric = TaskMetric(train_tasks, pri_tasks, batch_size, total_epoch, opt.dataset, include_mtl=True)
 
-# load loss 
+# load loss and initialize index/epoch
 if opt.load_model == True:
     loss = checkpoint["loss"]
+    index = checkpoint["epoch"] + 1
+else:
+    index = 0
 
-for index in range(total_epoch):
+while index <= total_epoch:
 
     # apply Dynamic Weight Average
     if opt.weight == 'dwa':
@@ -311,27 +314,26 @@ for index in range(total_epoch):
     np.save('logging/mtl_dense_{}_{}_{}_{}_{}_{}_.npy'
             .format(opt.network, opt.dataset, opt.task, opt.weight, opt.grad_method, opt.seed), dict)
 
-# save model or checkpoint
-print("Saving model ...")
+    # Save checkpoint 
+    if index == 99:
+        path = f"model_checkpoint_{model_name}_{dataset_name}.pth"
+        device = torch.device("cuda")
+        model.to(device)
+        torch.save({
+            'epoch': index,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'loss': loss,
+            }, path)
 
-# save full model if loaded from checkpoint
-if opt.load_model == True:
-    path = f"model_{model_name}_{dataset_name}.pth"
-    device = torch.device("cuda")
-    model.to(device)
-    torch.save(model.state_dict(), path)
+    # Save full model
+    elif index == 200:
+        path = f"model_{model_name}_{dataset_name}.pth"
+        device = torch.device("cuda")
+        model.to(device)
+        torch.save(model.state_dict(), path)
 
-# save checkpoint if not already loaded from checkpoint
-else:
-    path = f"model_checkpoint_{model_name}_{dataset_name}.pth"
-    device = torch.device("cuda")
-    model.to(device)
-    torch.save({
-        'epoch': index,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict(),
-        'loss': loss,
-        }, path)
+    index += 1
 
 print("FINISHED")

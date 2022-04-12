@@ -19,7 +19,9 @@ tasks = list(tasks.keys())
 print(tasks)
 
 # Read txt file with results 
-file_name = "/Users/olemartinsorensen/Desktop/Thesis/Results/model_{model_name}_{dataset_name}.rtf"
+#file_name = "/Users/olemartinsorensen/Desktop/Thesis/Results/model_{model_name}_{dataset_name}.rtf"
+file_name = "/Users/olemartinsorensen/Desktop/Thesis/Results/WRONG_ONE.rtf"
+#file_name = "/Users/olemartinsorensen/Desktop/Thesis/Wrong Results/ResNet/checkpoint_resnet_auto_lambda_equal_weight_cityscapes.rtf"
 
 train_task1 = []
 train_task2 = []
@@ -33,12 +35,12 @@ with open(file_name, "r") as a_file:
     for line in a_file:
         if "Epoch" in line:
             words = line.split(" ")
-            train_task1.append(float(words[7]))
-            train_task2.append(float(words[10]))
-            train_task3.append(float(words[13]))
-            test_task1.append(float(words[18]))
-            test_task2.append(float(words[21]))
-            test_task3.append(float(words[24]))
+            train_task1.append(float(words[6]))
+            train_task2.append(float(words[9]))
+            train_task3.append(float(words[12]))
+            test_task1.append(float(words[17]))
+            test_task2.append(float(words[20]))
+            test_task3.append(float(words[23]))
 
 
 # Create subplots
