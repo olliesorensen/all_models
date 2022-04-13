@@ -30,6 +30,6 @@
 module load numpy/1.21.1-python-3.8.11-openblas-0.3.17
 module load cuda/10.2
 
-python3 train_model.py --dataset "nyuv2" --network "ResNet_mtan" 
+python3 train_model.py --dataset "nyuv2" --network "ResNet_mtan" --load_model
 
 ## submit by using: bsub < jobscript.sh

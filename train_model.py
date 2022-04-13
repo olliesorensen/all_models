@@ -57,7 +57,7 @@ print('Applying Multi-task Methods: Weighting-based: {} + Gradient-based: {}'
 
 # define new or load excisting model and optimizer 
 if opt.load_model == True:
-    checkpoint = torch.load(f"model_checkpoint_{model_name}_{dataset_name}.pth")
+    checkpoint = torch.load(f"models/model_checkpoint_{model_name}_{dataset_name}.pth")
     if opt.network == 'ResNet_split':
         model = MTLDeepLabv3(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -162,7 +162,6 @@ if opt.grad_method != 'none':
         for param in mm.parameters():
             grad_dims.append(param.data.numel())
     grads = torch.Tensor(sum(grad_dims), len(train_tasks)).to(device)
-
 
 # Train and evaluate multi-task network
 train_batch = len(train_loader)
@@ -316,7 +315,7 @@ while index <= total_epoch:
 
     # Save checkpoint 
     if index == 99:
-        path = f"model_checkpoint_{model_name}_{dataset_name}.pth"
+        path = f"models/model_checkpoint_{model_name}_{dataset_name}.pth"
         device = torch.device("cuda")
         model.to(device)
         torch.save({
@@ -326,14 +325,16 @@ while index <= total_epoch:
             'scheduler_state_dict': scheduler.state_dict(),
             'loss': loss,
             }, path)
+        break
 
     # Save full model
-    elif index == 200:
-        path = f"model_{model_name}_{dataset_name}.pth"
+    elif index == total_epoch - 1:
+        path = f"models/model_{model_name}_{dataset_name}.pth"
         device = torch.device("cuda")
         model.to(device)
         torch.save(model.state_dict(), path)
 
     index += 1
+
 
 print("FINISHED")
