@@ -224,7 +224,7 @@ class SegNetSplit(nn.Module):
                 self.conv_block_dec.append(nn.Sequential(self.conv_layer([filter[i], filter[i]]),
                                                          self.conv_layer([filter[i], filter[i]])))
 
-        # # define task specific layers
+        # define task specific decoders
         if all (k in tasks for k in ('seg', 'depth', 'normal')):
         
             self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
