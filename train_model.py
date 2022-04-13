@@ -7,6 +7,7 @@ import torch.utils.data.sampler as sampler
 from auto_lambda import AutoLambda
 from model_ResNet import *
 from model_SegNet import *
+from model_EdgeSegNet import *
 from create_dataset import *
 from utils import *
 
@@ -14,7 +15,7 @@ parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Den
 parser.add_argument('--mode', default='none', type=str)
 parser.add_argument('--port', default='none', type=str)
 
-parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan')
+parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet')
 parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
 parser.add_argument('--grad_method', default='none', type=str, help='graddrop, pcgrad, cagrad')
 parser.add_argument('--gpu', default=0, type=int, help='gpu ID')
@@ -70,6 +71,9 @@ if opt.load_model == True:
     elif opt.network == "SegNet_mtan":
         model = SegNetMTAN(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
+    elif opt.network == "EdgeSegNet":
+        model = EdgeSegNet(train_tasks).to(device)
+        model.load_state_dict(checkpoint["model_state_dict"])
 else:
     if opt.network == 'ResNet_split':
         model = MTLDeepLabv3(train_tasks).to(device)
@@ -78,7 +82,9 @@ else:
     elif opt.network == "SegNet_split":
         model = SegNetSplit(train_tasks).to(device)
     elif opt.network == "SegNet_mtan":
-        model = SegNetMTAN(train_tasks).to(device)          
+        model = SegNetMTAN(train_tasks).to(device)
+    elif opt.network == "EdgeSegNet":
+        model = EdgeSegNet(train_tasks).to(device)          
 
 total_epoch = 200
 
@@ -111,6 +117,11 @@ if opt.load_model == True:
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+    elif "EdgeSegNet" in opt.network:
+        optimizer = optim.Adam(params, lr=1e-3)
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 else:
     if "ResNet" in opt.network:
         optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
@@ -118,6 +129,9 @@ else:
     elif "SegNet" in opt.network:
         optimizer = optim.Adam(params, lr=1e-4)
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+    elif "EdgeSegNet" in opt.network:
+        optimizer = optim.Adam(params, lr=1e-3)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
 
 # define dataset
 if opt.dataset == 'nyuv2':
