@@ -339,4 +339,4 @@ while index < total_epoch:
 
     index += 1
 
-print("FINISHED")
+print("Training complete")
