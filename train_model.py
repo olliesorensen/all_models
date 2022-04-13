@@ -177,7 +177,7 @@ if opt.load_model == True:
 else:
     index = 0
 
-while index <= total_epoch:
+while index < total_epoch:
 
     # apply Dynamic Weight Average
     if opt.weight == 'dwa':
@@ -315,6 +315,7 @@ while index <= total_epoch:
 
     # Save checkpoint 
     if index == 99:
+        print("Saving checkpoint")
         path = f"models/model_checkpoint_{model_name}_{dataset_name}.pth"
         device = torch.device("cuda")
         model.to(device)
@@ -329,12 +330,13 @@ while index <= total_epoch:
 
     # Save full model
     elif index == total_epoch - 1:
+        print("Saving full model")
         path = f"models/model_{model_name}_{dataset_name}.pth"
         device = torch.device("cuda")
         model.to(device)
         torch.save(model.state_dict(), path)
+        break
 
     index += 1
-
 
 print("FINISHED")
