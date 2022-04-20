@@ -24,7 +24,7 @@ if __name__ == "__main__":
     tasks = list(tasks.keys())
 
     # Read txt file with results 
-    file_name = f"/Users/olemartinsorensen/Desktop/Thesis/Results/Train_and_Eval/model_{model_name}_{dataset_name}.rtf"
+    file_name = f"/Users/olemartinsorensen/Desktop/Thesis/Results/Equal/Train_and_Eval/Equal_{model_name}_{data_set}_Results.rtf"
 
     train_task1 = []
     train_task2 = []
@@ -48,16 +48,25 @@ if __name__ == "__main__":
 
     # Create subplots
     fig, axarr = plt.subplots(1, 3)
-    axarr[0].plot(train_task1)
-    axarr[0].plot(test_task1)
-    axarr[0].set_title(tasks[0])
-    axarr[1].plot(train_task2)
-    axarr[1].plot(test_task2)
-    axarr[1].set_title(tasks[1])
-    axarr[2].plot(train_task3)
-    axarr[2].plot(test_task3)
-    axarr[2].set_title(tasks[2])
-
+    fig.suptitle(f"Training and Validation Error\n {model_name}, {data_set}")
+    axarr[0].plot(train_task1, label="Train")
+    axarr[0].plot(test_task1, label="Val")
+    axarr[0].set_title("Semantic Segmentation")
+    axarr[1].plot(train_task2, label="Train")
+    axarr[1].plot(test_task2, label="Val")
+    axarr[1].set_title("Depth" if opt.dataset == "nyuv2" else "Part Segmentation")
+    axarr[2].plot(train_task3, label="Train")
+    axarr[2].plot(test_task3, label="Val")
+    axarr[2].set_title("Surface Normals" if opt.dataset == "nyuv2" else "Disparity")
+    axarr[0].legend()
+    axarr[1].legend()
+    axarr[2].legend()
+    axarr[0].set_xlabel("Epoch")
+    axarr[0].set_ylabel("mIoU")
+    axarr[1].set_xlabel("Epoch")
+    axarr[1].set_ylabel("aErr." if opt.dataset == "nyuv2" else "mIoU")
+    axarr[2].set_xlabel("Epoch")
+    axarr[2].set_ylabel("mDist" if opt.dataset == "nyuv2" else "aErr.")
     plt.show()
 
 

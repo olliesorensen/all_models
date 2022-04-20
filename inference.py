@@ -17,7 +17,6 @@ from utils import *
 
 """ Script for testing various networks at inference time. All timings are given in milliseconds """
 
-
 parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Dense Prediction Tasks')
 parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan')
 parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes')
@@ -52,18 +51,19 @@ if __name__ == "__main__":
 
     # Load CUDA
     device = torch.device("cuda")
+    print("Device: ", device)
 
     # Load model
     if opt.network == 'ResNet_split':
-            model = MTLDeepLabv3(train_tasks).to(device)
-        elif opt.network == 'ResNet_mtan':
-            model = MTANDeepLabv3(train_tasks).to(device)
-        elif opt.network == "SegNet_split":
-            model = SegNetSplit(train_tasks).to(device)
-        elif opt.network == "SegNet_mtan":
-            model = SegNetMTAN(train_tasks).to(device)
-        elif opt.network = "EdgeSegNet":
-            model = EdgeSegNet(train_tasks)   
+        model = MTLDeepLabv3(train_tasks).to(device)
+    elif opt.network == 'ResNet_mtan':
+        model = MTANDeepLabv3(train_tasks).to(device)
+    elif opt.network == "SegNet_split":
+        model = SegNetSplit(train_tasks).to(device)
+    elif opt.network == "SegNet_mtan":
+        model = SegNetMTAN(train_tasks).to(device)
+    elif opt.network == "EdgeSegNet":
+        model = EdgeSegNet(train_tasks).to(device)   
 
     model.load_state_dict(torch.load(f"model_{model_name}_{data_set}.pth", map_location=device))
     model.eval()
