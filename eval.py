@@ -3,83 +3,107 @@ from configparser import Interpolation
 
 import torch
 import cv2
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-from model_segnet_mtan import *
+from model_ResNet import MTANDeepLabv3, MTLDeepLabv3
+from model_SegNet import SegNetMTAN, SegNetSplit
+from model_EdgeSegNet import EdgeSegNet
+from create_dataset import *
 from utils import *
 
 
-def eval():
+parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Dense Prediction Tasks')
+parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan')
+parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes')
+opt = parser.parse_args()
 
-    batch_size = 2
+def main():
 
-    # Load data set
-    dataset_path = opt.dataroot
-    nyuv2_test_set = NYUv2(root=dataset_path, train=False)
+    model_name = opt.network
+    data_set = opt.dataset
 
-    nyuv2_test_loader = torch.utils.data.DataLoader(
-        dataset=nyuv2_test_set,
+    batch_size = 1
+
+    # Define tasks based on dataset
+    train_tasks = create_task_flags('all', opt.dataset, with_noise=False)
+
+    # Define dataset
+    if opt.dataset == 'nyuv2':
+        dataset_path = 'dataset/nyuv2'
+        test_set = NYUv2(root=dataset_path, train=False)
+        batch_size = 1
+
+    elif opt.dataset == 'cityscapes':
+        dataset_path = 'dataset/cityscapes'
+        test_set = CityScapes(root=dataset_path, train=False)
+        batch_size = 1
+
+    test_loader = torch.utils.data.DataLoader(
+        dataset=test_set,
         batch_size=batch_size,
-        shuffle=False)
+        shuffle=False
+    )
 
-    # Load model (if model is saved on GPU but loaded on CPU, use map_location=torch.device())
-    model = SegNet()
-    model.load_state_dict(torch.load("model_mtan_nuyv2.pth", map_location=torch.device('cpu')))
+    # Load CUDA
+    device = torch.device("cpu")
+
+    # Load model
+    if opt.network == 'ResNet_split':
+        model = MTLDeepLabv3(train_tasks).to(device)
+    elif opt.network == 'ResNet_mtan':
+        model = MTANDeepLabv3(train_tasks).to(device)
+    elif opt.network == "SegNet_split":
+        model = SegNetSplit(train_tasks).to(device)
+    elif opt.network == "SegNet_mtan":
+        model = SegNetMTAN(train_tasks).to(device)
+    elif opt.network == "EdgeSegNet":
+        model = EdgeSegNet(train_tasks).to(device)   
+
+    model.load_state_dict(torch.load(f"models/model_{model_name}_{data_set}.pth", map_location=device))
     model.eval()
 
     # Create iteratable object
-    test_dataset = iter(nyuv2_test_loader)
-
-    # Define device 
-    device = torch.device("cpu")
-
-    for i in range(51):
-
-        if i == 50:
-
-            test_data, test_label, test_depth, test_normal = test_dataset.next()
-            test_data, test_label = test_data.to(device), test_label.long().to(device)
-            test_depth, test_normal = test_depth.to(device), test_normal.to(device)
-        else:
-            test_dataset.next()
+    test_dataset = iter(test_loader)
 
     # Make prediction
-    test_pred, _ = model(test_data)
+    with torch.no_grad():
+        test_data, test_target = test_dataset.next()
+        test_data = test_data.to(device)
+        test_target = {task_id: test_target[task_id].to(device) for task_id in train_tasks.keys()}
+        test_pred = model(test_data)
 
-    # Reshape test data from [2, 3, 288, 384] to [288, 384, 3]
-    test_data = test_data.permute(0, 2, 3, 1)
-    test_data = test_data.cpu().detach().numpy()
-    test_data = test_data[0, :, :, :]
+    test_target = list(test_target.values())
+    
+    print(test_data.size())
+    print(test_target[0].size())
+    print(test_target[1].size())
+    print(test_target[2].size())
 
-    # Reshape pred[0] data 
-    test_pred[0] = test_pred[0].cpu().detach().numpy()
-    test_pred[0] = test_pred[0][0, :, :, :]
+    # Reshape input data
+    test_data = torch.squeeze(test_data, 0)
+    #test_target[0] = torch.squeeze(test_target[0], 0)
+    test_target[1] = torch.squeeze(test_target[1], 0)
+    test_target[2] = torch.squeeze(test_target[2], 0)
+    test_data = test_data.permute(1, 2, 0)
+    test_target[0] = test_target[0].permute(1, 2, 0)
+    test_target[1] = test_target[1].permute(1, 2, 0)
+    test_target[2] = test_target[2].permute(1, 2, 0)   
 
-    # Reshape pred[1] data [2, 3, 288, 384] to [288, 384, 1]
-    test_pred[1] = test_pred[1].permute(0, 2, 3, 1)
-    test_pred[1] = test_pred[1].cpu().detach().numpy()
-    test_pred[1] = test_pred[1][0, :, :, :]
+    # Reshape output data 
+    test_pred[0] = torch.squeeze(test_pred[0], 0)
+    test_pred[1] = torch.squeeze(test_pred[1], 0)
+    test_pred[2] = torch.squeeze(test_pred[2], 0)
+    test_pred[0] = test_pred[0].permute(1, 2, 0)
+    test_pred[1] = test_pred[1].permute(1, 2, 0)
+    test_pred[2] = test_pred[2].permute(1, 2, 0)   
 
-    # Reshape pred[2] data [2, 3, 288, 384] to [288, 384, 3]
-    test_pred[2] = test_pred[2].permute(0, 2, 3, 1)
-    test_pred[2] = test_pred[2].cpu().detach().numpy()
-    test_pred[2] = test_pred[2][0, :, :, :]
-
-    # Reshape test_label data [2, 288, 384] to [288, 384]
-    test_label = test_label.cpu().detach().numpy()
-    test_label = test_label[0, :, :]
-
-    # Reshape test_depth data [2, 1, 288, 384] to [288, 384, 1]
-    test_depth = test_depth.permute(0, 2, 3, 1)
-    test_depth = test_depth.cpu().detach().numpy()
-    test_depth = test_depth[0, :, :, :]
-
-    # Reshape test_normal data [2, 3, 288, 384] to [288, 384, 3]
-    test_normal = test_normal.permute(0, 2, 3, 1)
-    test_normal = test_normal.cpu().detach().numpy()
-    test_normal = test_normal[0, :, :, :]
+    print(test_data.size())
+    print(test_target[0].size())
+    print(test_target[1].size())
+    print(test_target[2].size())
 
 
     colours = iter([
@@ -108,16 +132,14 @@ def eval():
         color = next(colours)
         seg_img = get_colored_segmentation_image(img.astype(np.uint8), 13, color)
         fused_img = cv2.addWeighted(fused_img.astype(np.uint8), 1, seg_img.astype(np.uint8), 0.5, 0)
-        #plt.imshow(fused_img)
-        #plt.show()
 
 
     # Create subplots
     fig, axarr = plt.subplots(2, 4)
     axarr[0, 0].imshow(test_data) # Original
-    axarr[0, 1].imshow(test_label) # Segmentation truth
-    axarr[0, 2].imshow(test_depth, cmap="gray") # Depth truth
-    axarr[0, 3].imshow(test_normal) # Normals truth
+    axarr[0, 1].imshow(test_target[0]) # Segmentation truth
+    axarr[0, 2].imshow(test_target[1], cmap="gray") # Depth truth
+    axarr[0, 3].imshow(test_target[2]) # Normals truth
     axarr[1, 0].imshow(test_data) # Original
     axarr[1, 1].imshow(fused_img) # Segmentation prediction
     axarr[1, 2].imshow(test_pred[1], cmap="gray") # Depth prediction
@@ -153,4 +175,4 @@ def overlay_seg_image(inp_img, seg_img):
 
 if __name__ == "__main__":
 
-    eval()
+    main()
