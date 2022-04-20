@@ -65,7 +65,7 @@ if __name__ == "__main__":
     elif opt.network == "EdgeSegNet":
         model = EdgeSegNet(train_tasks).to(device)   
 
-    model.load_state_dict(torch.load(f"model_{model_name}_{data_set}.pth", map_location=device))
+    model.load_state_dict(torch.load(f"models/model_{model_name}_{data_set}.pth", map_location=device))
     model.eval()
 
     # Create iteratable object
