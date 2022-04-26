@@ -51,7 +51,6 @@ if __name__ == "__main__":
 
     # Load CUDA
     device = torch.device("cuda")
-    print("Device: ", device)
 
     # Load model
     if opt.network == 'ResNet_split':
