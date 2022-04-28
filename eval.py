@@ -72,7 +72,7 @@ def main():
 
     # Make prediction
     with torch.no_grad():
-        for i in range(10):
+        for i in range(111):
             test_data, test_target = test_dataset.next()
         test_data = test_data.to(device)
         test_target = {task_id: test_target[task_id].to(device) for task_id in train_tasks.keys()}
@@ -159,6 +159,7 @@ def main():
 
         # Create subplots
         fig, axarr = plt.subplots(2, 4)
+        fig.suptitle(f"Visual Evaluation\n {model_name}, {data_set}")
         axarr[0, 0].imshow(test_data) # Original
         axarr[0, 1].imshow(test_target[0]) # Semantic Segmentation truth
         axarr[0, 2].imshow(test_target[1]) # Part Segmentation Truth
@@ -167,6 +168,7 @@ def main():
         axarr[1, 1].imshow(seg_mask0) # Semantic Segmentation prediction
         axarr[1, 2].imshow(seg_mask1) # Part Segmentation Prediction
         axarr[1, 3].imshow(test_pred[2], cmap="gray") # Disparity Prediction
+        fig.tight_layout()
         plt.show()
 
 
