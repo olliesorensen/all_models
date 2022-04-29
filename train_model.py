@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Den
 parser.add_argument('--mode', default='none', type=str)
 parser.add_argument('--port', default='none', type=str)
 
-parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet')
+parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, ResNet_split, EdgeSegNet')
 parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
 parser.add_argument('--grad_method', default='none', type=str, help='graddrop, pcgrad, cagrad')
 parser.add_argument('--gpu', default=0, type=int, help='gpu ID')
@@ -23,7 +23,7 @@ parser.add_argument('--with_noise', action='store_true', help='with noise predic
 parser.add_argument('--autol_init', default=0.1, type=float, help='initialisation for auto-lambda')
 parser.add_argument('--autol_lr', default=1e-4, type=float, help='learning rate for auto-lambda')
 parser.add_argument('--task', default='all', type=str, help='primary tasks, use all for MTL setting')
-parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes')
+parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes, simulated')
 parser.add_argument('--seed', default=0, type=int, help='random seed ID')
 parser.add_argument('--load_model', action='store_true', help='pass flag to load checkpoint')
 
@@ -62,14 +62,8 @@ if opt.load_model == True:
     if opt.network == 'ResNet_split':
         model = MTLDeepLabv3(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == 'ResNet_mtan':
-        model = MTANDeepLabv3(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
     elif opt.network == "SegNet_split":
         model = SegNetSplit(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "SegNet_mtan":
-        model = SegNetMTAN(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
     elif opt.network == "EdgeSegNet":
         model = EdgeSegNet(train_tasks).to(device)
@@ -77,12 +71,8 @@ if opt.load_model == True:
 else:
     if opt.network == 'ResNet_split':
         model = MTLDeepLabv3(train_tasks).to(device)
-    elif opt.network == 'ResNet_mtan':
-        model = MTANDeepLabv3(train_tasks).to(device)
     elif opt.network == "SegNet_split":
         model = SegNetSplit(train_tasks).to(device)
-    elif opt.network == "SegNet_mtan":
-        model = SegNetMTAN(train_tasks).to(device)
     elif opt.network == "EdgeSegNet":
         model = EdgeSegNet(train_tasks).to(device)          
 
@@ -144,6 +134,12 @@ elif opt.dataset == 'cityscapes':
     dataset_path = 'dataset/cityscapes'
     train_set = CityScapes(root=dataset_path, train=True, augmentation=True)
     test_set = CityScapes(root=dataset_path, train=False)
+    batch_size = 4
+
+elif opt.dataset == 'simulated':
+    dataset_path = 'dataset/simulated'
+    train_set = SimulatedData(root=dataset_path, train=True, augmentation=True)
+    test_set = SimulatedData(root=dataset_path, train=False)
     batch_size = 4
 
 train_loader = torch.utils.data.DataLoader(

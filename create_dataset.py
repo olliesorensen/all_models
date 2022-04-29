@@ -126,6 +126,46 @@ class NYUv2(data.Dataset):
         return self.data_len
 
 
+class SimulatedData(data.Dataset):
+    """ 
+    Simulated dataset, 2 tasks
+    1. Semantic segmentation, 23 classes
+    2. Depth estimation
+    """
+    def __init__(self, root, train=True, augmentation=False):
+        self.train = train
+        self.root = os.path.expanduser(root)
+        self.augmentation = augmentation
+
+        # read the data file
+        if train:
+            self.data_path = root + '/train'
+        else:
+            self.data_path = root + '/val'
+
+        # calculate data length
+        self.data_len = len(fnmatch.filter(os.listdir(self.data_path + '/image'), '*.npy'))
+
+    def __getitem__(self, index):
+        # load data from the pre-processed npy files
+        image = torch.from_numpy(np.moveaxis(np.load(self.data_path + '/image/{:d}.npy'.format(index)), -1, 0)).float()
+        semantic = torch.from_numpy(np.load(self.data_path + '/label/{:d}.npy'.format(index))).long()
+        depth = torch.from_numpy(np.moveaxis(np.load(self.data_path + '/depth/{:d}.npy'.format(index)), -1, 0)).float()
+
+        data_dict = {'im': image, 'seg': semantic, 'depth': depth}
+
+        # apply data augmentation if required
+        if self.augmentation:
+            data_dict = DataTransform(crop_size=[256, 256], scales=[1.0, 1.2, 1.5])(data_dict)
+
+        im = 2. * data_dict.pop('im') - 1.  # normalised to [-1, 1]
+        return im, data_dict 
+
+    def __len__(self):
+        return self.data_len
+
+
+
 class CityScapes(data.Dataset):
     """
     CityScapes dataset, 3 tasks + 1 generated useless task

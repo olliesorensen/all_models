@@ -44,6 +44,7 @@ def create_task_flags(task, dataset, with_noise=False):
     """
     nyu_tasks = {'seg': 13, 'depth': 1, 'normal': 3}
     cityscapes_tasks = {'seg': 19, 'part_seg': 10, 'disp': 1}
+    simulated_tasks = {"seg": 23, "depth": 1}
 
     tasks = {}
     if task != 'all':
@@ -51,11 +52,15 @@ def create_task_flags(task, dataset, with_noise=False):
             tasks[task] = nyu_tasks[task]
         elif dataset == 'cityscapes':
             tasks[task] = cityscapes_tasks[task]
+        elif dataset == "simulated":
+            tasks[task] = simulated_tasks[task]
     else:
         if dataset == 'nyuv2':
             tasks = nyu_tasks
         elif dataset == 'cityscapes':
             tasks = cityscapes_tasks
+        elif dataset == "simulated":
+            tasks = simulated_tasks
 
     if with_noise:
         tasks['noise'] = 1
