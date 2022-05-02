@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Dense Prediction Tasks')
 parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan')
 parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes')
+parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
 opt = parser.parse_args()
 
 
@@ -24,7 +25,7 @@ if __name__ == "__main__":
     tasks = list(tasks.keys())
 
     # Read txt file with results 
-    file_name = f"/Users/olemartinsorensen/Desktop/Thesis/Results/Equal/Train_and_Eval/Equal_{model_name}_{data_set}_Results.rtf"
+    file_name = f"/Users/olemartinsorensen/Desktop/Thesis/Results/{opt.weight}/Train_and_Eval/{opt.weight}_{model_name}_{data_set}_Results.rtf"
 
     train_task1 = []
     train_task2 = []

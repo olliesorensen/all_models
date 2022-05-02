@@ -20,6 +20,7 @@ from utils import *
 parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Dense Prediction Tasks')
 parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet')
 parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes')
+parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
 opt = parser.parse_args()
 
 def main():
@@ -64,7 +65,7 @@ def main():
     elif opt.network == "EdgeSegNet":
         model = EdgeSegNet(train_tasks).to(device)   
 
-    model.load_state_dict(torch.load(f"models/model_{model_name}_{data_set}.pth", map_location=device))
+    model.load_state_dict(torch.load(f"models/{opt.weight}/model_{model_name}_{data_set}.pth", map_location=device))
     model.eval()
 
     # Create iteratable object
@@ -72,8 +73,7 @@ def main():
 
     # Make prediction
     with torch.no_grad():
-        for i in range(111):
-            test_data, test_target = test_dataset.next()
+        test_data, test_target = test_dataset.next()
         test_data = test_data.to(device)
         test_target = {task_id: test_target[task_id].to(device) for task_id in train_tasks.keys()}
         test_pred = model(test_data)
