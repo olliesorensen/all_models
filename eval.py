@@ -113,7 +113,9 @@ def main():
 
         # Create subplots
         fig, axarr = plt.subplots(2, 4)
-        axarr[0, 0].imshow(test_data) # Original
+        # Remove values between 0 and -1
+        #test_data = test_data + 1
+        axarr[0, 0].imshow(test_data.astype("uint8")) # Original
         axarr[0, 1].imshow(test_target[0]) # Segmentation truth
         axarr[0, 2].imshow(test_target[1], cmap="gray") # Depth truth
         axarr[0, 3].imshow(test_target[2]) # Normals truth
@@ -160,6 +162,8 @@ def main():
         # Create subplots
         fig, axarr = plt.subplots(2, 4)
         fig.suptitle(f"Visual Evaluation\n {model_name}, {data_set}")
+        # Remove values between 0 and -1
+        test_data = test_data + 1
         axarr[0, 0].imshow(test_data) # Original
         axarr[0, 1].imshow(test_target[0]) # Semantic Segmentation truth
         axarr[0, 2].imshow(test_target[1]) # Part Segmentation Truth
@@ -198,12 +202,12 @@ def visualize_segmentation(temp, dataset, num_classes):
         sidewalk = [244,35,232]
         building = [70,70,70]
         wall = [102,102,156]
-        fence = [190,153,153]
+        fence = [100,40,40]
         pole = [153,153,153]
         traffic_light = [250,170,30] 
         traffic_sign = [220,220,0] 
         vegetation = [107,142, 35]
-        terrain = [152,251,152]
+        terrain = [145,170,100]
         sky = [70,130,180]
         person = [220,20,60]
         rider = [255,0,0]

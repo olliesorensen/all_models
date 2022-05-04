@@ -209,7 +209,7 @@ while index < total_epoch:
     train_dataset = iter(train_loader)
     if opt.weight == 'autol':
         val_dataset = iter(val_loader)
-
+    
     for k in range(train_batch):
         train_data, train_target = train_dataset.next()
         train_data = train_data.to(device)
