@@ -148,7 +148,7 @@ class SimulatedData(data.Dataset):
 
     def __getitem__(self, index):
         # load data from the pre-processed npy files
-        image = torch.from_numpy(np.moveaxis(np.load(self.data_path + '/image/{:d}.npy'.format(index)), -1, 0)).float()
+        image = torch.from_numpy(np.moveaxis(plt.imread(self.data_path + '/image/{:d}.npy'.format(index)), -1, 0)).float()
         semantic = torch.from_numpy(np.load(self.data_path + '/label/{:d}.npy'.format(index))).long()
         depth = torch.from_numpy(np.moveaxis(np.load(self.data_path + '/depth/{:d}.npy'.format(index)), -1, 0)).float()
 
@@ -156,7 +156,7 @@ class SimulatedData(data.Dataset):
 
         # apply data augmentation if required
         if self.augmentation:
-            data_dict = DataTransform(crop_size=[256, 256], scales=[1.0, 1.2, 1.5])(data_dict)
+            data_dict = DataTransform(crop_size=[480, 640], scales=[1.0, 1.2, 1.5])(data_dict)
 
         im = 2. * data_dict.pop('im') - 1.  # normalised to [-1, 1]
         return im, data_dict 
