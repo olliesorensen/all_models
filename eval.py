@@ -109,14 +109,15 @@ def main():
         test_pred[1] = test_pred[1].cpu().detach().numpy()    
         test_pred[2] = test_pred[2].cpu().detach().numpy()  
 
+        seg_mask2 = visualize_segmentation(test_target[0], opt.dataset, num_classes=13)
         seg_mask = visualize_segmentation(np.argmax(test_pred[0], axis=0), opt.dataset, num_classes=13) 
 
         # Create subplots
         fig, axarr = plt.subplots(2, 4)
         # Remove values between 0 and -1
         #test_data = test_data + 1
-        axarr[0, 0].imshow(test_data.astype("uint8")) # Original
-        axarr[0, 1].imshow(test_target[0]) # Segmentation truth
+        axarr[0, 0].imshow(test_data) # Original
+        axarr[0, 1].imshow(seg_mask2) # Segmentation truth
         axarr[0, 2].imshow(test_target[1], cmap="gray") # Depth truth
         axarr[0, 3].imshow(test_target[2]) # Normals truth
         axarr[1, 0].imshow(test_data) # Original
@@ -152,10 +153,22 @@ def main():
         test_pred[1] = test_pred[1].cpu().detach().numpy()    
         test_pred[2] = test_pred[2].cpu().detach().numpy() 
 
+        print("Input and targets")
+        print(test_data.shape)
+        print(test_target[0].shape)
+        print(test_target[1].shape)
+        print(test_target[2].shape)
+
+        print("Predictions")
         print(test_pred[0].shape)
         print(test_pred[1].shape)
         print(test_pred[2].shape)
 
+        # Target segmentation
+        seg_mask2 = visualize_segmentation(test_target[0], opt.dataset, num_classes=19) 
+        seg_mask3 = visualize_segmentation(test_target[1], opt.dataset, num_classes=10) 
+
+        # Predicted segmentation
         seg_mask0 = visualize_segmentation(np.argmax(test_pred[0], axis=0), opt.dataset, num_classes=19) 
         seg_mask1 = visualize_segmentation(np.argmax(test_pred[1], axis=0), opt.dataset, num_classes=10) 
 
@@ -163,10 +176,10 @@ def main():
         fig, axarr = plt.subplots(2, 4)
         fig.suptitle(f"Visual Evaluation\n {model_name}, {data_set}")
         # Remove values between 0 and -1
-        test_data = test_data + 1
+        #test_data = test_data + 1
         axarr[0, 0].imshow(test_data) # Original
-        axarr[0, 1].imshow(test_target[0]) # Semantic Segmentation truth
-        axarr[0, 2].imshow(test_target[1]) # Part Segmentation Truth
+        axarr[0, 1].imshow(seg_mask2) # Semantic Segmentation truth
+        axarr[0, 2].imshow(seg_mask3) # Part Segmentation Truth
         axarr[0, 3].imshow(test_target[2], cmap="gray") # Disparity Truth
         axarr[1, 0].imshow(test_data) # Original
         axarr[1, 1].imshow(seg_mask0) # Semantic Segmentation prediction
