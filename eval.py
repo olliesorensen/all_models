@@ -2,6 +2,7 @@ from cgi import test
 import cmath
 from configparser import Interpolation
 from webbrowser import BackgroundBrowser
+from PIL import Image
 
 import torch
 import cv2
