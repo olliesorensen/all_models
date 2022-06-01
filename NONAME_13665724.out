@@ -1,0 +1,46 @@
+Loaded dependency [numpy/1.21.1-python-3.8.11-openblas-0.3.17]: openblas/0.3.17
+Loaded dependency [python3/3.8.11]: gcc/10.3.0-binutils-2.36.1
+Loaded dependency [numpy/1.21.1-python-3.8.11-openblas-0.3.17]: python3/3.8.11
+Loaded module: numpy/1.21.1-python-3.8.11-openblas-0.3.17
+
+Loading numpy/1.21.1-python-3.8.11-openblas-0.3.17
+  Loading requirement: openblas/0.3.17 gcc/10.3.0-binutils-2.36.1 python3/3.8.11
+Loaded module: cuda/10.2
+/bin/bash: job_all_models.sh: command not found
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 13665724: <NONAME> in cluster <dcc> Exited
+
+Job <NONAME> was submitted from host <n-62-30-3> by user <s165495> in cluster <dcc> at Wed Jun  1 13:51:34 2022
+Job was executed on host(s) <n-62-31-3>, in queue <hpc>, as user <s165495> in cluster <dcc> at Wed Jun  1 13:51:36 2022
+</zhome/e6/6/119030> was used as the home directory.
+</zhome/e6/6/119030/hpc_jupyter/all_models> was used as the working directory.
+Started at Wed Jun  1 13:51:36 2022
+Terminated at Wed Jun  1 13:51:37 2022
+Results reported at Wed Jun  1 13:51:37 2022
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+job_all_models.sh
+------------------------------------------------------------
+
+Exited with exit code 127.
+
+Resource usage summary:
+
+    CPU time :                                   0.43 sec.
+    Max Memory :                                 -
+    Average Memory :                             -
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               -
+    Max Swap :                                   -
+    Max Processes :                              -
+    Max Threads :                                -
+    Run time :                                   1 sec.
+    Turnaround time :                            3 sec.
+
+The output (if any) is above this job summary.
+

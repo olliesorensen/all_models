@@ -225,23 +225,36 @@ class SegNetSplit(nn.Module):
                                                          self.conv_layer([filter[i], filter[i]])))
 
         # define task specific decoders
-        if all (k in tasks for k in ('seg', 'depth', 'normal')):
-        
+        if tasks[0] == "seg":
             self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
                                             nn.Conv2d(in_channels=filter[0], out_channels=13, kernel_size=1, padding=0))
-            self.pred_task2 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                            nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
-            self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                            nn.Conv2d(in_channels=filter[0], out_channels=3, kernel_size=1, padding=0))
-        else:
+
+        elif tasks[0] == "depth":
             self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                            nn.Conv2d(in_channels=filter[0], out_channels=19, kernel_size=1, padding=0))
-            self.pred_task2 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                            nn.Conv2d(in_channels=filter[0], out_channels=10, kernel_size=1, padding=0))
-            self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
                                             nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
         
-        self.decoders = nn.ModuleList([self.pred_task1, self.pred_task2, self.pred_task3])
+        elif tasks[0] == "normal":
+            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=filter[0], out_channels=3, kernel_size=1, padding=0))
+
+
+        # if all (k in tasks for k in ('seg', 'depth', 'normal')):
+        
+        #     self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+        #                                     nn.Conv2d(in_channels=filter[0], out_channels=13, kernel_size=1, padding=0))
+        #     self.pred_task2 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+        #                                     nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
+        #     self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+        #                                     nn.Conv2d(in_channels=filter[0], out_channels=3, kernel_size=1, padding=0))
+        # else:
+        #     self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+        #                                     nn.Conv2d(in_channels=filter[0], out_channels=19, kernel_size=1, padding=0))
+        #     self.pred_task2 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+        #                                     nn.Conv2d(in_channels=filter[0], out_channels=10, kernel_size=1, padding=0))
+        #     self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
+        #                                     nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
+        
+        self.decoders = nn.ModuleList([self.pred_task1])
         
         # Define task-specific decoders using ASPP modules
         #self.decoders = nn.ModuleList([DeepLabHead(filter[-1], self.tasks[t]) for t in self.tasks])  

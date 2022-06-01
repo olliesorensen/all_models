@@ -110,6 +110,8 @@ for index in range(total_epoch):
         train_loss[0].backward()
         optimizer.step()
 
+        print("train target:", train_target["seg"].size())
+        print("train_pred", train_pred[0].size())
         train_metric.update_metric(train_pred, train_target, train_loss)
 
     train_str = train_metric.compute_metric()
