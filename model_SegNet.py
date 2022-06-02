@@ -225,15 +225,15 @@ class SegNetSplit(nn.Module):
                                                          self.conv_layer([filter[i], filter[i]])))
 
         # define task specific decoders
-        if tasks[0] == "seg":
+        if "seg" in tasks.keys():
             self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
                                             nn.Conv2d(in_channels=filter[0], out_channels=13, kernel_size=1, padding=0))
 
-        elif tasks[0] == "depth":
+        elif "depth" in tasks.keys():
             self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
                                             nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
         
-        elif tasks[0] == "normal":
+        elif "normal" in tasks.keys():
             self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
                                             nn.Conv2d(in_channels=filter[0], out_channels=3, kernel_size=1, padding=0))
 
