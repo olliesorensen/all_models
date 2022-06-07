@@ -151,16 +151,16 @@ class EdgeSegNet(nn.Module):
 
         # define task specific decoders
         if "seg" in tasks.keys():
-            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                            nn.Conv2d(in_channels=filter[0], out_channels=13, kernel_size=1, padding=0))
+            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=217, out_channels=217, kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=217, out_channels=19, kernel_size=1, padding=0))
 
-        elif "depth" in tasks.keys():
-            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                            nn.Conv2d(in_channels=filter[0], out_channels=1, kernel_size=1, padding=0))
+        elif "part_seg" in tasks.keys():
+            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=217, out_channels=217, kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=217, out_channels=10, kernel_size=1, padding=0))
         
-        elif "normal" in tasks.keys():
-            self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=filter[0], out_channels=filter[0], kernel_size=3, padding=1),
-                                            nn.Conv2d(in_channels=filter[0], out_channels=3, kernel_size=1, padding=0))
+        elif "disp" in tasks.keys():
+            self.pred_task1 = self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=217, out_channels=217, kernel_size=3, padding=1),
+                                            nn.Conv2d(in_channels=217, out_channels=1, kernel_size=1, padding=0))
         # if all (k in tasks for k in ('seg', 'depth', 'normal')):
         
         #     self.pred_task1 = nn.Sequential(nn.Conv2d(in_channels=217, out_channels=217, kernel_size=3, padding=1),
@@ -177,7 +177,7 @@ class EdgeSegNet(nn.Module):
         #     self.pred_task3 = nn.Sequential(nn.Conv2d(in_channels=217, out_channels=217, kernel_size=3, padding=1),
         #                                     nn.Conv2d(in_channels=217, out_channels=1, kernel_size=1, padding=0))
         
-        self.decoders = nn.ModuleList([self.pred_task1, self.pred_task2, self.pred_task3])
+        self.decoders = nn.ModuleList([self.pred_task1])
 
     def forward(self, input_batch):
 
