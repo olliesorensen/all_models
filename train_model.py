@@ -8,6 +8,7 @@ from auto_lambda import AutoLambda
 from model_ResNet import *
 from model_SegNet import *
 from model_EdgeSegNet import *
+from model_EfficientNet import *
 from create_dataset import *
 from utils import *
 
@@ -15,7 +16,7 @@ parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Den
 parser.add_argument('--mode', default='none', type=str)
 parser.add_argument('--port', default='none', type=str)
 
-parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet')
+parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet, EfficientNet')
 parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
 parser.add_argument('--grad_method', default='none', type=str, help='graddrop, pcgrad, cagrad')
 parser.add_argument('--gpu', default=0, type=int, help='gpu ID')
@@ -74,6 +75,9 @@ if opt.load_model == True:
     elif opt.network == "EdgeSegNet":
         model = EdgeSegNet(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
+    elif opt.network == "EfficientNet":
+        model = EfficientNet.from_name('efficientnet-b0')  
+        model.load_state_dict(checkpoint["model_state_dict"])
 else:
     if opt.network == 'ResNet_split':
         model = MTLDeepLabv3(train_tasks).to(device)
@@ -84,7 +88,9 @@ else:
     elif opt.network == "SegNet_mtan":
         model = SegNetMTAN(train_tasks).to(device)
     elif opt.network == "EdgeSegNet":
-        model = EdgeSegNet(train_tasks).to(device)          
+        model = EdgeSegNet(train_tasks).to(device) 
+    elif opt.network == "EfficientNet":
+        model = EfficientNet.from_name('efficientnet-b0')     
 
 total_epoch = 200
 
