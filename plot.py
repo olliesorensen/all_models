@@ -39,12 +39,12 @@ if __name__ == "__main__":
         for line in a_file:
             if "Epoch" in line:
                 words = line.split(" ")
-                train_task1.append(float(words[7]))
-                train_task2.append(float(words[10]))
-                train_task3.append(float(words[13]))
-                test_task1.append(float(words[18]))
-                test_task2.append(float(words[21]))
-                test_task3.append(float(words[24]))
+                train_task1.append(float(words[8]))
+                train_task2.append(float(words[11]))
+                train_task3.append(float(words[14]))
+                test_task1.append(float(words[19]))
+                test_task2.append(float(words[22]))
+                test_task3.append(float(words[25]))
 
 
     # Create subplots

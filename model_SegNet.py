@@ -268,7 +268,6 @@ class SegNetSplit(nn.Module):
 
         conv_block = nn.Sequential(
             nn.Conv2d(in_channels=channel[0], out_channels=channel[1], kernel_size=3, padding=1),
-            nn.Dropout(0.2),
             nn.BatchNorm2d(num_features=channel[1]),
             nn.ReLU(inplace=True)
         )
