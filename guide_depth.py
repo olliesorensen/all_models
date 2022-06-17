@@ -9,7 +9,7 @@ from guide_modules import Guided_Upsampling_Block
 class GuideDepth(nn.Module):
     def __init__(self,
             tasks, 
-            pretrained=True,
+            pretrained=False,
             up_features=[64, 32, 16], 
             inner_features=[64, 32, 16]):
         super(GuideDepth, self).__init__()
@@ -29,14 +29,14 @@ class GuideDepth(nn.Module):
                                    guidance_type="full")
         self.up_2 = Guided_Upsampling_Block(in_features=up_features[1],
                                    expand_features=inner_features[1],
-                                   out_features=up_features[1],
+                                   out_features=up_features[2],
                                    kernel_size=3,
                                    channel_attention=True,
                                    guide_features=3,
                                    guidance_type="full")
         self.up_3 = Guided_Upsampling_Block(in_features=up_features[2],
                                    expand_features=inner_features[2],
-                                   out_features=up_features[1],
+                                   out_features=up_features[2],
                                    kernel_size=3,
                                    channel_attention=True,
                                    guide_features=3,
@@ -44,13 +44,13 @@ class GuideDepth(nn.Module):
 
         # define task specific layers
         if all (k in tasks for k in ('seg', 'depth', 'normal')):           
-            self.pred_task1 = self.conv_layer([filter[0], 13], pred=True)
-            self.pred_task2 = self.conv_layer([filter[0], 1], pred=True)
-            self.pred_task3 = self.conv_layer([filter[0], 3], pred=True)            
+            self.pred_task1 = self.conv_layer([up_features[2], 13], pred=True)
+            self.pred_task2 = self.conv_layer([up_features[2], 1], pred=True)
+            self.pred_task3 = self.conv_layer([up_features[2], 3], pred=True)            
         else:
-            self.pred_task1 = self.conv_layer([filter[0], 19], pred=True)
-            self.pred_task2 = self.conv_layer([filter[0], 10], pred=True)
-            self.pred_task3 = self.conv_layer([filter[0], 1], pred=True) 
+            self.pred_task1 = self.conv_layer([up_features[2], 19], pred=True)
+            self.pred_task2 = self.conv_layer([up_features[2], 10], pred=True)
+            self.pred_task3 = self.conv_layer([up_features[2], 1], pred=True) 
             
         self.decoders = nn.ModuleList([self.pred_task1, self.pred_task2, self.pred_task3])
 
