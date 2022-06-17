@@ -11,6 +11,7 @@ import matplotlib.image as mpimg
 from model_ResNet import MTANDeepLabv3, MTLDeepLabv3
 from model_SegNet import SegNetMTAN, SegNetSplit
 from model_EdgeSegNet import EdgeSegNet
+from guide_depth import GuideDepth
 from create_dataset import *
 from utils import *
 
@@ -18,7 +19,7 @@ from utils import *
 """ Script for testing various networks at inference time. All timings are given in milliseconds """
 
 parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Dense Prediction Tasks')
-parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan')
+parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, GuideDepth')
 parser.add_argument('--dataset', default='nyuv2', type=str, help='nyuv2, cityscapes')
 opt = parser.parse_args()
 
@@ -62,7 +63,9 @@ if __name__ == "__main__":
     elif opt.network == "SegNet_mtan":
         model = SegNetMTAN(train_tasks).to(device)
     elif opt.network == "EdgeSegNet":
-        model = EdgeSegNet(train_tasks).to(device)   
+        model = EdgeSegNet(train_tasks).to(device)
+    elif opt.network == "GuideDepth":
+        model = GuideDepth(train_tasks).to(device)      
 
     model.load_state_dict(torch.load(f"models/model_{model_name}_{data_set}.pth", map_location=device))
     model.eval()

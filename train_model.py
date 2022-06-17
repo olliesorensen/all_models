@@ -8,7 +8,7 @@ from auto_lambda import AutoLambda
 from model_ResNet import *
 from model_SegNet import *
 from model_EdgeSegNet import *
-from model_EfficientNet import *
+from guide_depth import *
 from create_dataset import *
 from utils import *
 
@@ -75,8 +75,8 @@ if opt.load_model == True:
     elif opt.network == "EdgeSegNet":
         model = EdgeSegNet(train_tasks).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "EfficientNet":
-        model = EfficientNet.from_name('efficientnet-b0')  
+    elif opt.network == "GuideDepth":
+        model = GuideDepth(train_tasks).to(device) 
         model.load_state_dict(checkpoint["model_state_dict"])
 else:
     if opt.network == 'ResNet_split':
@@ -89,8 +89,8 @@ else:
         model = SegNetMTAN(train_tasks).to(device)
     elif opt.network == "EdgeSegNet":
         model = EdgeSegNet(train_tasks).to(device) 
-    elif opt.network == "EfficientNet":
-        model = EfficientNet.from_name('efficientnet-b0')     
+    elif opt.network == "GuideDepth":
+        model = GuideDepth(train_tasks).to(device)    
 
 total_epoch = 200
 
