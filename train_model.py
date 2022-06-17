@@ -8,7 +8,6 @@ from auto_lambda import AutoLambda
 from model_ResNet import *
 from model_SegNet import *
 from model_EdgeSegNet import *
-from model_EfficientNet import *
 from create_dataset import *
 from utils import *
 
@@ -58,39 +57,20 @@ print('Applying Multi-task Methods: Weighting-based: {} + Gradient-based: {}'
       .format(opt.weight.title(), opt.grad_method.upper()))
 
 # define new or load excisting model and optimizer 
+if opt.network == 'ResNet_split':
+    model = MTLDeepLabv3(train_tasks).to(device)
+elif opt.network == 'ResNet_mtan':
+    model = MTANDeepLabv3(train_tasks).to(device)
+elif opt.network == "SegNet_split":
+    model = SegNetSplit(train_tasks).to(device)
+elif opt.network == "SegNet_mtan":
+    model = SegNetMTAN(train_tasks).to(device)
+elif opt.network == "EdgeSegNet":
+    model = EdgeSegNet(train_tasks).to(device)   
+
 if opt.load_model == True:
     checkpoint = torch.load(f"models/model_checkpoint_{model_name}_{dataset_name}.pth")
-    if opt.network == 'ResNet_split':
-        model = MTLDeepLabv3(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == 'ResNet_mtan':
-        model = MTANDeepLabv3(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "SegNet_split":
-        model = SegNetSplit(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "SegNet_mtan":
-        model = SegNetMTAN(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "EdgeSegNet":
-        model = EdgeSegNet(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "EfficientNet":
-        model = EfficientNet.from_name('efficientnet-b0')  
-        model.load_state_dict(checkpoint["model_state_dict"])
-else:
-    if opt.network == 'ResNet_split':
-        model = MTLDeepLabv3(train_tasks).to(device)
-    elif opt.network == 'ResNet_mtan':
-        model = MTANDeepLabv3(train_tasks).to(device)
-    elif opt.network == "SegNet_split":
-        model = SegNetSplit(train_tasks).to(device)
-    elif opt.network == "SegNet_mtan":
-        model = SegNetMTAN(train_tasks).to(device)
-    elif opt.network == "EdgeSegNet":
-        model = EdgeSegNet(train_tasks).to(device) 
-    elif opt.network == "EfficientNet":
-        model = EfficientNet.from_name('efficientnet-b0')     
+    model.load_state_dict(checkpoint["model_state_dict"]) 
 
 total_epoch = 200
 
@@ -112,32 +92,26 @@ if opt.weight == 'autol':
     meta_optimizer = optim.Adam([autol.meta_weights], lr=opt.autol_lr)
 
 # define or load optimizer and scheduler
+if "ResNet" in opt.network:
+    optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
+elif "SegNet" in opt.network:
+    optimizer = optim.Adam(params, lr=1e-4)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+elif "EdgeSegNet" in opt.network:
+    optimizer = optim.Adam(params, lr=1e-3)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
+
 if opt.load_model == True:
     if "ResNet" in opt.network:
-        optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
     elif "SegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-4)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
     elif "EdgeSegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-3)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-else:
-    if "ResNet" in opt.network:
-        optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
-    elif "SegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-4)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
-    elif "EdgeSegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-3)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
 
 # define dataset
 if opt.dataset == 'nyuv2':
@@ -333,23 +307,8 @@ while index < total_epoch:
     np.save('logging/mtl_dense_{}_{}_{}_{}_{}_{}_.npy'
             .format(opt.network, opt.dataset, opt.task, opt.weight, opt.grad_method, opt.seed), dict)
 
-    # Save checkpoint 
-    if index == 99:
-        print("Saving checkpoint")
-        path = f"models/model_checkpoint_{model_name}_{dataset_name}.pth"
-        device = torch.device("cuda")
-        model.to(device)
-        torch.save({
-            'epoch': index,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'scheduler_state_dict': scheduler.state_dict(),
-            'loss': loss,
-            }, path)
-        break
-
     # Save full model
-    elif index == total_epoch - 1:
+    if index == total_epoch - 1:
         print("Saving full model")
         path = f"models/model_{model_name}_{dataset_name}.pth"
         device = torch.device("cuda")
