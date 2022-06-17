@@ -8,6 +8,7 @@ from auto_lambda import AutoLambda
 from model_ResNet import *
 from model_SegNet import *
 from model_EdgeSegNet import *
+from model_DDRNet import *
 from create_dataset import *
 from utils import *
 
@@ -66,7 +67,10 @@ elif opt.network == "SegNet_split":
 elif opt.network == "SegNet_mtan":
     model = SegNetMTAN(train_tasks).to(device)
 elif opt.network == "EdgeSegNet":
-    model = EdgeSegNet(train_tasks).to(device)   
+    model = EdgeSegNet(train_tasks).to(device)  
+elif opt.network == "DDRNet":
+    model = DualResNet(BasicBlock, [2, 2, 2, 2], train_tasks, planes=32, spp_planes=128, head_planes=64)
+
 
 if opt.load_model == True:
     checkpoint = torch.load(f"models/model_checkpoint_{model_name}_{dataset_name}.pth")
@@ -101,17 +105,14 @@ elif "SegNet" in opt.network:
 elif "EdgeSegNet" in opt.network:
     optimizer = optim.Adam(params, lr=1e-3)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
+elif "DDRNet" in opt.network:
+    optimizer = optim.SGD(params, lr=0.01, weight_decay=5e-4, momentum=0.9)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5) # Just winging this one, 
+    # should try ty implement the one in original paper
 
 if opt.load_model == True:
-    if "ResNet" in opt.network:
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    elif "SegNet" in opt.network:
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    elif "EdgeSegNet" in opt.network:
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
 # define dataset
 if opt.dataset == 'nyuv2':
