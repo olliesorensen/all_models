@@ -8,7 +8,7 @@ from auto_lambda import AutoLambda
 from model_ResNet import *
 from model_SegNet import *
 from model_EdgeSegNet import *
-from model_DDRNet import *
+from model_DDRNet2 import *
 from create_dataset import *
 from utils import *
 
