@@ -13,7 +13,7 @@ bn_mom = 0.1
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=True)
+                     padding=1, bias=False)
 
 
 class BasicBlock(nn.Module):
@@ -34,11 +34,11 @@ class BasicBlock(nn.Module):
         residual = x
 
         out = self.conv1(x)
-        #out = self.bn1(out)
+        out = self.bn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        #out = self.bn2(out)
+        out = self.bn2(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -55,13 +55,13 @@ class Bottleneck(nn.Module):
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, no_relu=True):
         super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=True)
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = BatchNorm2d(planes, momentum=bn_mom)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-                               padding=1, bias=True)
+                               padding=1, bias=False)
         self.bn2 = BatchNorm2d(planes, momentum=bn_mom)
         self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1,
-                               bias=True)
+                               bias=False)
         self.bn3 = BatchNorm2d(planes * self.expansion, momentum=bn_mom)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -72,15 +72,15 @@ class Bottleneck(nn.Module):
         residual = x
 
         out = self.conv1(x)
-        #out = self.bn1(out)
+        out = self.bn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        #out = self.bn2(out)
+        out = self.bn2(out)
         out = self.relu(out)
 
         out = self.conv3(out)
-        #out = self.bn3(out)
+        out = self.bn3(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -177,19 +177,18 @@ class DAPPM(nn.Module):
 
 class segmenthead(nn.Module):
 
-    def __init__(self, inplanes, interplanes, outplanes, scale_factor=8):
+    def __init__(self, inplanes, interplanes, outplanes, scale_factor=None):
         super(segmenthead, self).__init__()
         self.bn1 = BatchNorm2d(inplanes, momentum=bn_mom)
-        self.conv1 = nn.Conv2d(inplanes, interplanes, kernel_size=3, padding=1, bias=True)
+        self.conv1 = nn.Conv2d(inplanes, interplanes, kernel_size=3, padding=1, bias=False)
         self.bn2 = BatchNorm2d(interplanes, momentum=bn_mom)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(interplanes, outplanes, kernel_size=1, padding=0, bias=True)
         self.scale_factor = scale_factor
 
     def forward(self, x):
-        
         x = self.conv1(self.relu(self.bn1(x)))
-        out = self.conv2(self.relu(x))
+        out = self.conv2(self.relu(self.bn2(x)))
 
         if self.scale_factor is not None:
             height = x.shape[-2] * self.scale_factor
@@ -197,12 +196,11 @@ class segmenthead(nn.Module):
             out = F.interpolate(out,
                         size=[height, width],
                         mode='bilinear')
-
         return out
 
 class DualResNet(nn.Module):
 
-    def __init__(self, block, layers, tasks, planes=64, spp_planes=128, head_planes=128, augment=False):
+    def __init__(self, block, layers, tasks, num_classes=19, planes=64, spp_planes=128, head_planes=128, augment=False):
         super(DualResNet, self).__init__()
 
         highres_planes = planes * 2
@@ -225,25 +223,25 @@ class DualResNet(nn.Module):
         self.layer4 = self._make_layer(block, planes * 4, planes * 8, layers[3], stride=2)
 
         self.compression3 = nn.Sequential(
-                                          nn.Conv2d(planes * 4, highres_planes, kernel_size=1, bias=True),
+                                          nn.Conv2d(planes * 4, highres_planes, kernel_size=1, bias=False),
                                           BatchNorm2d(highres_planes, momentum=bn_mom),
                                           )
 
         self.compression4 = nn.Sequential(
-                                          nn.Conv2d(planes * 8, highres_planes, kernel_size=1, bias=True),
+                                          nn.Conv2d(planes * 8, highres_planes, kernel_size=1, bias=False),
                                           BatchNorm2d(highres_planes, momentum=bn_mom),
                                           )
 
         self.down3 = nn.Sequential(
-                                   nn.Conv2d(highres_planes, planes * 4, kernel_size=3, stride=2, padding=1, bias=True),
+                                   nn.Conv2d(highres_planes, planes * 4, kernel_size=3, stride=2, padding=1, bias=False),
                                    BatchNorm2d(planes * 4, momentum=bn_mom),
                                    )
 
         self.down4 = nn.Sequential(
-                                   nn.Conv2d(highres_planes, planes * 4, kernel_size=3, stride=2, padding=1, bias=True),
+                                   nn.Conv2d(highres_planes, planes * 4, kernel_size=3, stride=2, padding=1, bias=False),
                                    BatchNorm2d(planes * 4, momentum=bn_mom),
                                    nn.ReLU(inplace=True),
-                                   nn.Conv2d(planes * 4, planes * 8, kernel_size=3, stride=2, padding=1, bias=True),
+                                   nn.Conv2d(planes * 4, planes * 8, kernel_size=3, stride=2, padding=1, bias=False),
                                    BatchNorm2d(planes * 8, momentum=bn_mom),
                                    )
 
@@ -257,20 +255,20 @@ class DualResNet(nn.Module):
 
         self.spp = DAPPM(planes * 16, spp_planes, planes * 4)
 
-        # if self.augment:
-        #     self.seghead_extra = segmenthead(highres_planes, head_planes, num_classes)            
+        if self.augment:
+            self.seghead_extra = segmenthead(highres_planes, head_planes, num_classes)            
 
-        # self.final_layer = segmenthead(planes * 4, head_planes, num_classes)
+        #self.final_layer = segmenthead(planes * 4, head_planes, num_classes)
 
-        # define task specific decoders
-        if all (k in tasks for k in ('seg', 'depth', 'normal')):           
-            self.pred_task1 = self.conv_layer([planes * 4, 13], pred=True)
-            self.pred_task2 = self.conv_layer([planes * 4, 1], pred=True)
-            self.pred_task3 = self.conv_layer([planes * 4, 3], pred=True)            
+        # Define task specific decoders
+        if all (k in tasks for k in ('seg', 'depth', 'normal')):
+            self.pred_task1 = segmenthead(planes * 4, head_planes, 13)
+            self.pred_task2 = segmenthead(planes * 4, head_planes, 1)
+            self.pred_task3 = segmenthead(planes * 4, head_planes, 3)
         else:
-            self.pred_task1 = self.conv_layer([planes * 4, 19], pred=True)
-            self.pred_task2 = self.conv_layer([planes * 4, 10], pred=True)
-            self.pred_task3 = self.conv_layer([planes * 4, 1], pred=True) 
+            self.pred_task1 = segmenthead(planes * 4, head_planes, 19)
+            self.pred_task2 = segmenthead(planes * 4, head_planes, 10)
+            self.pred_task3 = segmenthead(planes * 4, head_planes, 1)
             
         self.decoders = nn.ModuleList([self.pred_task1, self.pred_task2, self.pred_task3])
 
@@ -281,26 +279,13 @@ class DualResNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def conv_layer(self, channel, pred=False):
-        if not pred:
-            conv_block = nn.Sequential(
-                nn.Conv2d(in_channels=channel[0], out_channels=channel[1], kernel_size=3, padding=1),
-                nn.BatchNorm2d(num_features=channel[1]),
-                nn.ReLU(inplace=True),
-            )
-        else:
-            conv_block = nn.Sequential(
-                nn.Conv2d(in_channels=channel[0], out_channels=channel[0], kernel_size=3, padding=1),
-                nn.Conv2d(in_channels=channel[0], out_channels=channel[1], kernel_size=1, padding=0),
-            )
-        return conv_block
 
     def _make_layer(self, block, inplanes, planes, blocks, stride=1):
         downsample = None
         if stride != 1 or inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=True),
+                          kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion, momentum=bn_mom),
             )
 
@@ -313,148 +298,59 @@ class DualResNet(nn.Module):
             else:
                 layers.append(block(inplanes, planes, stride=1, no_relu=False))
 
-        return nn.Sequential(*layers)
+        return nn.Sequential(*layers)    
 
 
-    def forward(self, x):   
-
-        width_output = x.shape[-1] #// 8
-        height_output = x.shape[-2] #// 8
+    def forward(self, x):
+        w, h = x.shape[-1], x.shape[-2]
+        width_output = x.shape[-1] // 8
+        height_output = x.shape[-2] // 8
         layers = []
 
         x = self.conv1(x)
 
-
         x = self.layer1(x)
         layers.append(x)
 
-
         x = self.layer2(self.relu(x))
         layers.append(x)
-
   
         x = self.layer3(self.relu(x))
-
         layers.append(x)
         x_ = self.layer3_(self.relu(layers[1]))
 
-
         x = x + self.down3(self.relu(x_))
-
-
         x_ = x_ + F.interpolate(
                         self.compression3(self.relu(layers[2])),
-                        size=[x_.shape[-2], x_.shape[-1]],
+                        size=[height_output, width_output],
                         mode='bilinear')
         if self.augment:
             temp = x_
 
-
         x = self.layer4(self.relu(x))
-
         layers.append(x)
         x_ = self.layer4_(self.relu(x_))
 
-
         x = x + self.down4(self.relu(x_))
-
         x_ = x_ + F.interpolate(
                         self.compression4(self.relu(layers[3])),
-                        size=[x_.shape[-2], x_.shape[-1]],
+                        size=[height_output, width_output],
                         mode='bilinear')
-
 
         x_ = self.layer5_(self.relu(x_))
-
         x = F.interpolate(
                         self.spp(self.layer5(self.relu(x))),
-                        size=[x_.shape[-2], x_.shape[-1]],
+                        size=[height_output, width_output],
                         mode='bilinear')
 
-        x = x + x_ 
-
         #x_ = self.final_layer(x + x_)
+
+        x_ = x_ + x
 
         # Task specific decoders
         out = [0 for _ in self.tasks]
         for i, t in enumerate(self.tasks):
-            out[i] = F.interpolate(self.decoders[i](x), size=[height_output, width_output], mode='bilinear', align_corners=True)
+            out[i] = F.interpolate(self.decoders[i](x_), size=[h, w], mode='bilinear', align_corners=True)
             if t == 'normal':
                 out[i] = out[i] / torch.norm(out[i], p=2, dim=1, keepdim=True)
         return out
-
-        # if self.augment: 
-        #     x_extra = self.seghead_extra(temp)
-        #     return [x_, x_extra]
-        # else:
-        #     return x_      
-
-# def DualResNet_imagenet(pretrained=False):
-#     model = DualResNet(BasicBlock, [2, 2, 2, 2], num_classes=19, planes=32, spp_planes=128, head_planes=64, augment=True)
-#     if pretrained:
-#         checkpoint = torch.load('/home/user1/hyd/HRNet/' + "DDRNet23s_imagenet.pth", map_location='cpu') 
-#         '''      
-#         new_state_dict = OrderedDict()
-#         for k, v in checkpoint['state_dict'].items():
-#             name = k[7:]  
-#             new_state_dict[name] = v
-#         #model_dict.update(new_state_dict)
-#         #model.load_state_dict(model_dict)
-#         '''
-#         model.load_state_dict(new_state_dict, strict = False)
-#     return model
-
-# def get_seg_model(cfg, **kwargs):
-
-#     model = DualResNet_imagenet(pretrained=False)
-#     return model
-
-# if __name__ == '__main__':
-
-
-#     import time
-#     device = torch.device('cuda')
-#     #torch.backends.cudnn.enabled = True
-#     #torch.backends.cudnn.benchmark = True
-
-#     tasks = {'seg': 13, 'depth': 1, 'normal': 3}
-
-#     model = DualResNet(BasicBlock, [2, 2, 2, 2], tasks, planes=32, spp_planes=128, head_planes=64)
-#     model.eval()
-#     model.to(device)
-#     iterations = None
-
-#     input = torch.randn(1, 3, 1024, 2048).cuda()
-#     with torch.no_grad():
-#         for _ in range(10):
-#             model(input)
-
-#         if iterations is None:
-#             elapsed_time = 0
-#             iterations = 100
-#             while elapsed_time < 1:
-#                 torch.cuda.synchronize()
-#                 torch.cuda.synchronize()
-#                 t_start = time.time()
-#                 for _ in range(iterations):
-#                     model(input)
-#                 torch.cuda.synchronize()
-#                 torch.cuda.synchronize()
-#                 elapsed_time = time.time() - t_start
-#                 iterations *= 2
-#             FPS = iterations / elapsed_time
-#             iterations = int(FPS * 6)
-
-#         print('=========Speed Testing=========')
-#         torch.cuda.synchronize()
-#         torch.cuda.synchronize()
-#         t_start = time.time()
-#         for _ in range(iterations):
-#             model(input)
-#         torch.cuda.synchronize()
-#         torch.cuda.synchronize()
-#         elapsed_time = time.time() - t_start
-#         latency = elapsed_time / iterations * 1000
-#     torch.cuda.empty_cache()
-#     FPS = 1000 / latency
-#     print(FPS)
