@@ -69,7 +69,7 @@ elif opt.network == "SegNet_mtan":
 elif opt.network == "EdgeSegNet":
     model = EdgeSegNet(train_tasks).to(device)  
 elif opt.network == "DDRNet":
-    model = DualResNet(BasicBlock, [2, 2, 2, 2], train_tasks, planes=32, spp_planes=128, head_planes=64)
+    model = DualResNet(BasicBlock, [2, 2, 2, 2], train_tasks, planes=32, spp_planes=128, head_planes=64).to(device)
 
 
 if opt.load_model == True:
@@ -210,6 +210,11 @@ while index < total_epoch:
         # update multi-task network parameters with task weights
         optimizer.zero_grad()
         train_pred = model(train_data)
+        # print(len(train_pred))
+        # print(train_pred[0].shape)
+        # print(train_pred[1].shape)
+        # print(train_pred[2].shape)
+        # print(train_target["depth"])
         train_loss = [compute_loss(train_pred[i], train_target[task_id], task_id) for i, task_id in enumerate(train_tasks)]
 
         train_loss_tmp = [0] * len(train_tasks)

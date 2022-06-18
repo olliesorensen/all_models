@@ -3,7 +3,7 @@
 ### –- specify queue --
 #BSUB -q gpuv100
 ### -- set the job Name --
-#BSUB -J auto_lambda
+#BSUB -J DDRNet_cityscapes
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 1
 ### -- Select the resources: 1 gpu in exclusive process mode --
@@ -30,6 +30,6 @@
 module load numpy/1.21.1-python-3.8.11-openblas-0.3.17
 module load cuda/10.2
 
-python3 train_model.py --dataset "nyuv2" --network "ResNet_mtan" --load_model
+python3 train_model.py --dataset "cityscapes" --network "DDRNet"
 
 ## submit by using: bsub < jobscript.sh

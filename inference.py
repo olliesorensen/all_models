@@ -11,6 +11,7 @@ import matplotlib.image as mpimg
 from model_ResNet import MTANDeepLabv3, MTLDeepLabv3
 from model_SegNet import SegNetMTAN, SegNetSplit
 from model_EdgeSegNet import EdgeSegNet
+from model_DDRNet import *
 from create_dataset import *
 from utils import *
 
@@ -62,9 +63,11 @@ if __name__ == "__main__":
     elif opt.network == "SegNet_mtan":
         model = SegNetMTAN(train_tasks).to(device)
     elif opt.network == "EdgeSegNet":
-        model = EdgeSegNet(train_tasks).to(device)   
+        model = EdgeSegNet(train_tasks).to(device)
+    elif opt.network == "DDRNet":
+        model = DualResNet(BasicBlock, [2, 2, 2, 2], train_tasks, planes=32, spp_planes=128, head_planes=64).to(device)
 
-    model.load_state_dict(torch.load(f"models/model_{model_name}_{data_set}.pth", map_location=device))
+    #model.load_state_dict(torch.load(f"models/model_{model_name}_{data_set}.pth", map_location=device))
     model.eval()
 
     # Create iteratable object
