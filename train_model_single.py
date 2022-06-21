@@ -3,9 +3,11 @@ import argparse
 import torch.optim as optim
 import torch.utils.data.sampler as sampler
 
-from model_ResNet import *
-from model_SegNet import *
-from model_EdgeSegNet import *
+from model_ResNet import MTLDeepLabv3, MTANDeepLabv3
+from model_SegNet import SegNetSplit, SegNetMTAN
+from model_EdgeSegNet import EdgeSegNet
+from model_DDRNet import DualResNet, BasicBlock
+from model_GuideDepth import GuideDepth
 from create_dataset import *
 from utils import *
 
@@ -36,7 +38,7 @@ train_tasks = create_task_flags(opt.task, opt.dataset)
 print('Training Task: {} - {} in Single Task Learning Mode with {}'
       .format(opt.dataset.title(), opt.task.title(), opt.network.upper()))
 
-# define model
+# define new model and optimizer 
 if opt.network == 'ResNet_split':
     model = MTLDeepLabv3(train_tasks).to(device)
 elif opt.network == 'ResNet_mtan':
@@ -46,20 +48,35 @@ elif opt.network == "SegNet_split":
 elif opt.network == "SegNet_mtan":
     model = SegNetMTAN(train_tasks).to(device)
 elif opt.network == "EdgeSegNet":
-    model = EdgeSegNet(train_tasks).to(device) 
+    model = EdgeSegNet(train_tasks).to(device)
+elif opt.network == "GuidedDepth":
+    model = GuideDepth(train_tasks).to(device) 
+elif opt.network == "DDRNet":
+    model = DualResNet(BasicBlock, [2, 2, 2, 2], train_tasks, planes=32, spp_planes=128, head_planes=64).to(device)
+else:
+    raise ValueError   
 
 total_epoch = 200
 
-# define optimizer and scheduler
+params = model.parameters()
+
+# define or load optimizer and scheduler
 if "ResNet" in opt.network:
-    optimizer = optim.SGD(model.parameters(), lr=0.1, weight_decay=1e-4, momentum=0.9)
+    optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
 elif "SegNet" in opt.network:
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(params, lr=1e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
 elif "EdgeSegNet" in opt.network:
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(params, lr=1e-3)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
+elif "GuidedDepth" in opt.network:
+    optimizer = optim.Adam(params, lr=1e-4)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+elif "DDRNet" in opt.network:
+    optimizer = optim.SGD(params, lr=0.01, weight_decay=5e-4, momentum=0.9)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5) # Just winging this one, 
+    # should try ty implement the one in original paper
 
 # define dataset
 if opt.dataset == 'nyuv2':
