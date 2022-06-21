@@ -5,9 +5,11 @@ import torch.optim as optim
 import torch.utils.data.sampler as sampler
 
 from auto_lambda import AutoLambda
-from model_ResNet import *
-from model_SegNet import *
-from model_EdgeSegNet import *
+from model_ResNet import MTLDeepLabv3, MTANDeepLabv3
+from model_SegNet import SegNetSplit, SegNetMTAN
+from model_EdgeSegNet import EdgeSegNet
+from model_DDRNet import DualResNet, BasicBlock
+from model_GuideDepth import GuideDepth
 from create_dataset import *
 from utils import *
 
@@ -15,8 +17,8 @@ parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Den
 parser.add_argument('--mode', default='none', type=str)
 parser.add_argument('--port', default='none', type=str)
 
-parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet, EfficientNet')
-parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
+parser.add_argument('--network', default='SegNet_split', type=str, help='e.g. SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet')
+parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert')
 parser.add_argument('--grad_method', default='none', type=str, help='graddrop, pcgrad, cagrad')
 parser.add_argument('--gpu', default=0, type=int, help='gpu ID')
 parser.add_argument('--with_noise', action='store_true', help='with noise prediction task')
@@ -66,7 +68,13 @@ elif opt.network == "SegNet_split":
 elif opt.network == "SegNet_mtan":
     model = SegNetMTAN(train_tasks).to(device)
 elif opt.network == "EdgeSegNet":
-    model = EdgeSegNet(train_tasks).to(device)   
+    model = EdgeSegNet(train_tasks).to(device)
+elif opt.network == "GuidedDepth":
+    model = GuideDepth(train_tasks).to(device) 
+elif opt.network == "DDRNet":
+    model = DualResNet(BasicBlock, [2, 2, 2, 2], train_tasks, planes=32, spp_planes=128, head_planes=64).to(device)
+else:
+    raise ValueError    
 
 if opt.load_model == True:
     checkpoint = torch.load(f"models/model_checkpoint_{model_name}_{dataset_name}.pth")
@@ -101,17 +109,17 @@ elif "SegNet" in opt.network:
 elif "EdgeSegNet" in opt.network:
     optimizer = optim.Adam(params, lr=1e-3)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
+elif "GuidedDepth" in opt.network:
+    optimizer = optim.Adam(params, lr=1e-4)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+elif "DDRNet" in opt.network:
+    optimizer = optim.SGD(params, lr=0.01, weight_decay=5e-4, momentum=0.9)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5) # Just winging this one, 
+    # should try ty implement the one in original paper
 
 if opt.load_model == True:
-    if "ResNet" in opt.network:
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    elif "SegNet" in opt.network:
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    elif "EdgeSegNet" in opt.network:
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
 # define dataset
 if opt.dataset == 'nyuv2':
@@ -227,34 +235,6 @@ while index < total_epoch:
         if opt.grad_method == 'none':
             loss.backward()
             optimizer.step()
-
-        # # gradient-based methods applied here:
-        # elif opt.grad_method == "graddrop":
-        #     for i in range(len(train_tasks)):
-        #         train_loss_tmp[i].backward(retain_graph=True)
-        #         grad2vec(model, grads, grad_dims, i)
-        #         model.zero_grad_shared_modules()
-        #     g = graddrop(grads)
-        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
-        #     optimizer.step()
-
-        # elif opt.grad_method == "pcgrad":
-        #     for i in range(len(train_tasks)):
-        #         train_loss_tmp[i].backward(retain_graph=True)
-        #         grad2vec(model, grads, grad_dims, i)
-        #         model.zero_grad_shared_modules()
-        #     g = pcgrad(grads, rng, len(train_tasks))
-        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
-        #     optimizer.step()
-
-        # elif opt.grad_method == "cagrad":
-        #     for i in range(len(train_tasks)):
-        #         train_loss_tmp[i].backward(retain_graph=True)
-        #         grad2vec(model, grads, grad_dims, i)
-        #         model.zero_grad_shared_modules()
-        #     g = cagrad(grads, len(train_tasks), 0.4, rescale=1)
-        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
-        #     optimizer.step()
 
         train_metric.update_metric(train_pred, train_target, train_loss)
 
