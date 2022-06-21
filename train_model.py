@@ -5,9 +5,11 @@ import torch.optim as optim
 import torch.utils.data.sampler as sampler
 
 from auto_lambda import AutoLambda
-from model_ResNet import *
-from model_SegNet import *
-from model_EdgeSegNet import *
+from model_ResNet import MTLDeepLabv3, MTANDeepLabv3
+from model_SegNet import SegNetSplit, SegNetMTAN
+from model_EdgeSegNet import EdgeSegNet
+from model_DDRNet import DualResNet, BasicBlock
+from model_GuideDepth import GuideDepth
 from create_dataset import *
 from utils import *
 
@@ -15,8 +17,8 @@ parser = argparse.ArgumentParser(description='Multi-task/Auxiliary Learning: Den
 parser.add_argument('--mode', default='none', type=str)
 parser.add_argument('--port', default='none', type=str)
 
-parser.add_argument('--network', default='SegNet_split', type=str, help='SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet')
-parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert, autol')
+parser.add_argument('--network', default='SegNet_split', type=str, help='e.g. SegNet_split, SegNet_mtan, ResNet_split, Resnet_mtan, EdgeSegNet')
+parser.add_argument('--weight', default='equal', type=str, help='weighting methods: equal, dwa, uncert')
 parser.add_argument('--grad_method', default='none', type=str, help='graddrop, pcgrad, cagrad')
 parser.add_argument('--gpu', default=0, type=int, help='gpu ID')
 parser.add_argument('--with_noise', action='store_true', help='with noise prediction task')
@@ -57,34 +59,26 @@ print('Applying Multi-task Methods: Weighting-based: {} + Gradient-based: {}'
       .format(opt.weight.title(), opt.grad_method.upper()))
 
 # define new or load excisting model and optimizer 
+if opt.network == 'ResNet_split':
+    model = MTLDeepLabv3(train_tasks).to(device)
+elif opt.network == 'ResNet_mtan':
+    model = MTANDeepLabv3(train_tasks).to(device)
+elif opt.network == "SegNet_split":
+    model = SegNetSplit(train_tasks).to(device)
+elif opt.network == "SegNet_mtan":
+    model = SegNetMTAN(train_tasks).to(device)
+elif opt.network == "EdgeSegNet":
+    model = EdgeSegNet(train_tasks).to(device)
+elif opt.network == "GuidedDepth":
+    model = GuideDepth(train_tasks).to(device) 
+elif opt.network == "DDRNet":
+    model = DualResNet(BasicBlock, [2, 2, 2, 2], train_tasks, planes=32, spp_planes=128, head_planes=64).to(device)
+else:
+    raise ValueError    
+
 if opt.load_model == True:
     checkpoint = torch.load(f"models/model_checkpoint_{model_name}_{dataset_name}.pth")
-    if opt.network == 'ResNet_split':
-        model = MTLDeepLabv3(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == 'ResNet_mtan':
-        model = MTANDeepLabv3(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "SegNet_split":
-        model = SegNetSplit(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "SegNet_mtan":
-        model = SegNetMTAN(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif opt.network == "EdgeSegNet":
-        model = EdgeSegNet(train_tasks).to(device)
-        model.load_state_dict(checkpoint["model_state_dict"])
-else:
-    if opt.network == 'ResNet_split':
-        model = MTLDeepLabv3(train_tasks).to(device)
-    elif opt.network == 'ResNet_mtan':
-        model = MTANDeepLabv3(train_tasks).to(device)
-    elif opt.network == "SegNet_split":
-        model = SegNetSplit(train_tasks).to(device)
-    elif opt.network == "SegNet_mtan":
-        model = SegNetMTAN(train_tasks).to(device)
-    elif opt.network == "EdgeSegNet":
-        model = EdgeSegNet(train_tasks).to(device)          
+    model.load_state_dict(checkpoint["model_state_dict"]) 
 
 total_epoch = 200
 
@@ -106,32 +100,26 @@ if opt.weight == 'autol':
     meta_optimizer = optim.Adam([autol.meta_weights], lr=opt.autol_lr)
 
 # define or load optimizer and scheduler
+if "ResNet" in opt.network:
+    optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
+elif "SegNet" in opt.network:
+    optimizer = optim.Adam(params, lr=1e-4)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+elif "EdgeSegNet" in opt.network:
+    optimizer = optim.Adam(params, lr=1e-3)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
+elif "GuidedDepth" in opt.network:
+    optimizer = optim.Adam(params, lr=1e-4)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+elif "DDRNet" in opt.network:
+    optimizer = optim.SGD(params, lr=0.01, weight_decay=5e-4, momentum=0.9)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5) # Just winging this one, 
+    # should try ty implement the one in original paper
+
 if opt.load_model == True:
-    if "ResNet" in opt.network:
-        optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    elif "SegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-4)
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    elif "EdgeSegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-3)
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-else:
-    if "ResNet" in opt.network:
-        optimizer = optim.SGD(params, lr=0.1, weight_decay=1e-4, momentum=0.9)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, total_epoch)
-    elif "SegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-4)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
-    elif "EdgeSegNet" in opt.network:
-        optimizer = optim.Adam(params, lr=1e-3)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.95)
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
 # define dataset
 if opt.dataset == 'nyuv2':
@@ -248,34 +236,6 @@ while index < total_epoch:
             loss.backward()
             optimizer.step()
 
-        # # gradient-based methods applied here:
-        # elif opt.grad_method == "graddrop":
-        #     for i in range(len(train_tasks)):
-        #         train_loss_tmp[i].backward(retain_graph=True)
-        #         grad2vec(model, grads, grad_dims, i)
-        #         model.zero_grad_shared_modules()
-        #     g = graddrop(grads)
-        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
-        #     optimizer.step()
-
-        # elif opt.grad_method == "pcgrad":
-        #     for i in range(len(train_tasks)):
-        #         train_loss_tmp[i].backward(retain_graph=True)
-        #         grad2vec(model, grads, grad_dims, i)
-        #         model.zero_grad_shared_modules()
-        #     g = pcgrad(grads, rng, len(train_tasks))
-        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
-        #     optimizer.step()
-
-        # elif opt.grad_method == "cagrad":
-        #     for i in range(len(train_tasks)):
-        #         train_loss_tmp[i].backward(retain_graph=True)
-        #         grad2vec(model, grads, grad_dims, i)
-        #         model.zero_grad_shared_modules()
-        #     g = cagrad(grads, len(train_tasks), 0.4, rescale=1)
-        #     overwrite_grad(model, g, grad_dims, len(train_tasks))
-        #     optimizer.step()
-
         train_metric.update_metric(train_pred, train_target, train_loss)
 
     train_str = train_metric.compute_metric()
@@ -327,23 +287,8 @@ while index < total_epoch:
     np.save('logging/mtl_dense_{}_{}_{}_{}_{}_{}_.npy'
             .format(opt.network, opt.dataset, opt.task, opt.weight, opt.grad_method, opt.seed), dict)
 
-    # Save checkpoint 
-    if index == 99:
-        print("Saving checkpoint")
-        path = f"models/model_checkpoint_{model_name}_{dataset_name}.pth"
-        device = torch.device("cuda")
-        model.to(device)
-        torch.save({
-            'epoch': index,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'scheduler_state_dict': scheduler.state_dict(),
-            'loss': loss,
-            }, path)
-        break
-
     # Save full model
-    elif index == total_epoch - 1:
+    if index == total_epoch - 1:
         print("Saving full model")
         path = f"models/model_{model_name}_{dataset_name}.pth"
         device = torch.device("cuda")
