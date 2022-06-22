@@ -55,9 +55,11 @@ def inference_test(model_name, data_set):
     for _ in range(20):
 
         if data_set == "nyuv2":
-            test_data = (255-0)*torch.rand((3, 256, 512)) + 0
+            test_data = (255-0)*torch.rand((1, 3, 256, 512)) + 0
+            test_data = test_data.to(device)
         else:
-            test_data = (255-0)*torch.rand((3, 288, 384)) + 0
+            test_data = (255-0)*torch.rand((1, 3, 288, 384)) + 0
+            test_data = test_data.to(device)
         
         _ = model(test_data)
 
@@ -66,9 +68,11 @@ def inference_test(model_name, data_set):
         for rep in range(repetitions):
             
             if data_set == "nyuv2":
-                test_data = (255-0)*torch.rand((3, 256, 512)) + 0
+                test_data = (255-0)*torch.rand((1, 3, 288, 384)) + 0
+                test_data = test_data.to(device)
             else:
-                test_data = (255-0)*torch.rand((3, 288, 384)) + 0
+                test_data = (255-0)*torch.rand((1, 3, 256, 512)) + 0
+                test_data = test_data.to(device)
 
             starter.record()
             _ = model(test_data)
@@ -82,7 +86,6 @@ def inference_test(model_name, data_set):
     # Calculate mean and std
     mean_time = np.sum(timings) / repetitions
     std_time = np.std(timings)
-
     return mean_time, std_time
 
     
