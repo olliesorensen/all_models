@@ -2,7 +2,6 @@ from cgi import test
 from configparser import Interpolation
 
 import torch
-import cv2
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,7 +12,6 @@ from model_SegNet import SegNetMTAN, SegNetSplit
 from model_EdgeSegNet import EdgeSegNet
 from model_GuideDepth import GuideDepth
 from model_DDRNet import DualResNet, BasicBlock
-from create_dataset import *
 from utils import *
 
 
@@ -22,27 +20,8 @@ from utils import *
 
 def inference_test(model_name, data_set):
 
-    batch_size = 1
-
     # Define tasks based on dataset
     train_tasks = create_task_flags('all', data_set)
-
-    # Define dataset
-    if data_set == 'nyuv2':
-        dataset_path = 'dataset/nyuv2'
-        test_set = NYUv2(root=dataset_path, train=False)
-        batch_size = 1
-
-    elif data_set == 'cityscapes':
-        dataset_path = 'dataset/cityscapes'
-        test_set = CityScapes(root=dataset_path, train=False)
-        batch_size = 1
-
-    test_loader = torch.utils.data.DataLoader(
-        dataset=test_set,
-        batch_size=batch_size,
-        shuffle=False
-    )
 
     # Load CUDA
     device = torch.device("cuda")
@@ -65,11 +44,7 @@ def inference_test(model_name, data_set):
     else:
         raise ValueError   
 
-    # model.load_state_dict(torch.load(f"models/model_{model_name}_{data_set}.pth", map_location=device))
     model.eval()
-
-    # Create iteratable object
-    test_dataset = iter(test_loader)
 
     # Define start event, end event and number of repetitions
     starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
@@ -78,17 +53,22 @@ def inference_test(model_name, data_set):
 
     # GPU warm-up
     for _ in range(20):
-        test_data, test_target = test_dataset.next()
-        test_data = test_data.to(device)
-        test_target = {task_id: test_target[task_id].to(device) for task_id in train_tasks.keys()}
+
+        if data_set == "nyuv2":
+            test_data = (255-0)*torch.rand((3, 256, 512)) + 0
+        else:
+            test_data = (255-0)*torch.rand((3, 288, 384)) + 0
+        
         _ = model(test_data)
 
     # Measure performance 
     with torch.no_grad():
         for rep in range(repetitions):
-            test_data, test_target = test_dataset.next()
-            test_data = test_data.to(device)
-            test_target = {task_id: test_target[task_id].to(device) for task_id in train_tasks.keys()}
+            
+            if data_set == "nyuv2":
+                test_data = (255-0)*torch.rand((3, 256, 512)) + 0
+            else:
+                test_data = (255-0)*torch.rand((3, 288, 384)) + 0
 
             starter.record()
             _ = model(test_data)
@@ -128,4 +108,3 @@ if __name__ == "__main__":
 
     print("Timings for all models on CityScapes given in milliseconds")
     print(cityscapes_timings)
-
