@@ -55,11 +55,11 @@ def inference_test(model_name, data_set):
     for _ in range(20):
 
         if data_set == "nyuv2":
-            test_data = (255-0)*torch.rand((1, 3, 256, 512)) + 0
-            test_data = test_data.to(device)
+            test_data = torch.randint(0, 256, (1, 3, 288, 384)).to(device)
+            test_data = test_data.to(torch.float32)
         else:
-            test_data = (255-0)*torch.rand((1, 3, 288, 384)) + 0
-            test_data = test_data.to(device)
+            test_data = torch.randint(0, 256, (1, 3, 256, 512)).to(device)
+            test_data = test_data.to(torch.float32)
         
         _ = model(test_data)
 
@@ -68,11 +68,15 @@ def inference_test(model_name, data_set):
         for rep in range(repetitions):
             
             if data_set == "nyuv2":
-                test_data = (255-0)*torch.rand((1, 3, 288, 384)) + 0
-                test_data = test_data.to(device)
+                #test_data = (255-0)*torch.rand((1, 3, 288, 384)) + 0
+                test_data = torch.randint(0, 256, (1, 3, 288, 384)).to(device)
+                test_data = test_data.to(torch.float32)
+                #test_data = test_data.to(device)
             else:
-                test_data = (255-0)*torch.rand((1, 3, 256, 512)) + 0
-                test_data = test_data.to(device)
+                #test_data = (255-0)*torch.rand((1, 3, 256, 512)) + 0
+                test_data = torch.randint(0, 256, (1, 3, 256, 512)).to(device)
+                test_data = test_data.to(torch.float32)
+                #test_data = test_data.to(device)
 
             starter.record()
             _ = model(test_data)
