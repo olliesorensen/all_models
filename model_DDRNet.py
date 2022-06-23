@@ -266,11 +266,11 @@ class DualResNet(nn.Module):
         if "seg" in tasks.keys():
             self.pred_task1 = segmenthead(planes * 4, head_planes, 19)
 
-        elif "part_seg" in tasks.keys():
-            self.pred_task1 = segmenthead(planes * 4, head_planes, 10)
-        
-        elif "disp" in tasks.keys():
+        elif "depth" in tasks.keys():
             self.pred_task1 = segmenthead(planes * 4, head_planes, 1)
+        
+        elif "normal" in tasks.keys():
+            self.pred_task1 = segmenthead(planes * 4, head_planes, 3)
 
         # if all (k in tasks for k in ('seg', 'depth', 'normal')):
         #     self.pred_task1 = segmenthead(planes * 4, head_planes, 13)

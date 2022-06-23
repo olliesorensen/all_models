@@ -521,11 +521,11 @@ class GuideDepth(nn.Module):
         if "seg" in tasks.keys():
             self.pred_task1 = self.conv_layer([up_features[2], 19], pred=True)
 
-        elif "part_seg" in tasks.keys():
-            self.pred_task1 = self.conv_layer([up_features[2], 10], pred=True)
+        elif "depth" in tasks.keys():
+            self.pred_task1 = self.conv_layer([up_features[2], 1], pred=True)
         
-        elif "disp" in tasks.keys():
-            self.pred_task1 = self.conv_layer([up_features[2], 1], pred=True) 
+        elif "normal" in tasks.keys():
+            self.pred_task1 = self.conv_layer([up_features[2], 3], pred=True) 
 
         # if all (k in tasks for k in ('seg', 'depth', 'normal')):           
         #     self.pred_task1 = self.conv_layer([up_features[2], 13], pred=True)
