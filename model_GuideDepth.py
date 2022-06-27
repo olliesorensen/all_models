@@ -519,7 +519,7 @@ class GuideDepth(nn.Module):
 
         # define task specific layers
         if "seg" in tasks.keys():
-            self.pred_task1 = self.conv_layer([up_features[2], 19], pred=True)
+            self.pred_task1 = self.conv_layer([up_features[2], 13], pred=True)
 
         elif "depth" in tasks.keys():
             self.pred_task1 = self.conv_layer([up_features[2], 1], pred=True)

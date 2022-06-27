@@ -264,7 +264,7 @@ class DualResNet(nn.Module):
 
         # define task specific decoders
         if "seg" in tasks.keys():
-            self.pred_task1 = segmenthead(planes * 4, head_planes, 19)
+            self.pred_task1 = segmenthead(planes * 4, head_planes, 13)
 
         elif "depth" in tasks.keys():
             self.pred_task1 = segmenthead(planes * 4, head_planes, 1)
