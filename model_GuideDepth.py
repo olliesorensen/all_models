@@ -1,9 +1,3 @@
-
-"""
-DDRNet_23_slim
-Adopted from:
-https://github.com/ydhongHIT/DDRNet/blob/main/segmentation/DDRNet_23_slim.py
-"""
 import math
 import torch
 import numpy as np
@@ -11,6 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 from collections import OrderedDict
+
+""" Implementation of the DDRNet-23-slim Network, adopted from:
+https://github.com/ydhongHIT/DDRNet/blob/main/segmentation/DDRNet_23_slim.py """
 
 #BatchNorm2d = nn.SyncBatchNorm
 BatchNorm2d = nn.BatchNorm2d
@@ -375,10 +372,6 @@ class Interpolate(nn.Module):
         return F.interpolate(x, self.scale_factor, mode=self.mode)
 
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 class SELayer(nn.Module):
     """
     Taken from:
@@ -477,10 +470,7 @@ class Guided_Upsampling_Block(nn.Module):
         return self.reduce(residual + depth)
 
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
+""" Define GuideDepth """
 
 class GuideDepth(nn.Module):
     def __init__(self,

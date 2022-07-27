@@ -6,6 +6,9 @@ import torch.nn.functional as F
 from torch.nn import init
 from collections import OrderedDict
 
+""" Implementation of the DDRNet-23-Slim network,
+adapted from https://github.com/ydhongHIT/DDRNet """
+
 BatchNorm2d = nn.BatchNorm2d
 bn_mom = 0.1
 

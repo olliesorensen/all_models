@@ -6,9 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-"""
-Define task metrics, loss functions and model trainer here.
-"""
+""" Define task metrics, loss functions and model trainer """
 
 
 class ConfMatrix(object):
@@ -102,8 +100,9 @@ def compute_loss(pred, gt, task_id):
         # L1 Loss with Ignored Region (values are 0 or -1)
         invalid_idx = -1 if task_id == 'disp' else 0
         valid_mask = (torch.sum(gt, dim=1, keepdim=True) != invalid_idx).to(pred.device)
-        loss = torch.sum(F.l1_loss(pred, gt, reduction='none').masked_select(valid_mask)) \
-                / torch.nonzero(valid_mask, as_tuple=False).size(0)
+        # loss = torch.sum(F.l1_loss(pred, gt, reduction='none').masked_select(valid_mask)) \
+        #         / torch.nonzero(valid_mask, as_tuple=False).size(0)
+        loss = torch.mean(torch.abs(pred - gt).masked_select(valid_mask)).item()
     return loss
 
 

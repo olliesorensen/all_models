@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
+""" Implementation of the EdgeSegNet network,
+adapted form https://github.com/lorenmt/auto-lambda """
 # --------------------------------------------------------------------------------
 # Define Modules
 # --------------------------------------------------------------------------------

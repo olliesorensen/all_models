@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models.resnet as resnet
 
+""" Implementation of ResNet-50 and ResNet-50 MTAN using modules from DeepLab,
+inspired by https://github.com/lorenmt/auto-lambda """
 
 # --------------------------------------------------------------------------------
 # Define ResNet Modules

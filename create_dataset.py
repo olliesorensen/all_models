@@ -13,6 +13,8 @@ import torchvision.transforms.functional as transforms_f
 
 from PIL import Image
 
+""" Class for data augmentation during training and data loaders for 
+    NYUv2 and CityScapes """
 
 class DataTransform(object):
     def __init__(self, scales, crop_size, is_disparity=False):

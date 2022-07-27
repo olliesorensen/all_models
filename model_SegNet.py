@@ -5,6 +5,8 @@ import torch.nn.functional as F
 import argparse
 import torch.utils.data.sampler as sampler
 
+""" Implementation of SegNet and SegNet MTAN, inspired by
+https://github.com/lorenmt/mtan """
 
 # --------------------------------------------------------------------------------
 # Define SegNet MTAN
